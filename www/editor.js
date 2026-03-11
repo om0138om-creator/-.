@@ -467,7 +467,7 @@ class ImageEditor {
     }
 
     // ============================================
-    // 🖱️ أحداث الكانفاس (السحب والتحريك)
+    // 🖱️ أحداث الكانفاس (السحب والتحريك والتكبير بصباعين)
     // ============================================
 
     setupCanvasEvents() {
@@ -476,14 +476,14 @@ class ImageEditor {
         // الماوس
         container?.addEventListener('mousedown', (e) => this.handlePointerDown(e));
         document.addEventListener('mousemove', (e) => this.handlePointerMove(e));
-        document.addEventListener('mouseup', () => this.handlePointerUp());
+        document.addEventListener('mouseup', (e) => this.handlePointerUp(e));
         
-        // اللمس
+        // اللمس المتعدد (للموبايل)
         container?.addEventListener('touchstart', (e) => this.handlePointerDown(e), { passive: false });
         document.addEventListener('touchmove', (e) => this.handlePointerMove(e), { passive: false });
-        document.addEventListener('touchend', () => this.handlePointerUp());
+        document.addEventListener('touchend', (e) => this.handlePointerUp(e));
         
-        // التكبير بالعجلة
+        // التكبير بالعجلة للكمبيوتر
         container?.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
@@ -491,24 +491,36 @@ class ImageEditor {
                 this.setZoom(this.zoom + delta);
             }
         }, { passive: false });
+    }
 
-        // لمس مزدوج للتكبير على الموبايل
-        let lastTap = 0;
-        container?.addEventListener('touchend', (e) => {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            
-            if (tapLength < 300 && tapLength > 0) {
-                e.preventDefault();
-                this.zoomFit();
-            }
-            lastTap = currentTime;
-        });
+    // حساب المسافة بين صباعين
+    getDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     handlePointerDown(e) {
         if (!this.baseImage) return;
         
+        // لو المستخدم حط صباعين على الشاشة (للتكبير والتصغير)
+        if (e.touches && e.touches.length === 2) {
+            this.isDragging = false; // نوقف السحب
+            this.initialPinchDistance = this.getDistance(e.touches[0], e.touches[1]);
+            
+            const layer = this.getSelectedLayer();
+            if (layer) {
+                // لو محدد نص، هنحفظ حجمه عشان نكبره
+                this.initialFontSize = layer.fontSize;
+            } else {
+                // لو مش محدد نص، هنحفظ زووم الصورة عشان نكبرها
+                this.initialZoom = this.zoom;
+            }
+            e.preventDefault();
+            return;
+        }
+
+        // لو صباع واحد (للسحب والتحديد)
         const pos = this.getPointerPosition(e);
         const layer = this.findLayerAtPosition(pos);
         
@@ -519,31 +531,63 @@ class ImageEditor {
                 x: pos.x - layer.x,
                 y: pos.y - layer.y
             };
-            e.preventDefault();
         } else {
             this.deselectAll();
         }
+        
+        if (e.cancelable) e.preventDefault();
     }
 
     handlePointerMove(e) {
-        if (!this.isDragging || !this.selectedLayerId) return;
-        
-        const pos = this.getPointerPosition(e);
-        const layer = this.getSelectedLayer();
-        
-        if (layer) {
-            layer.x = pos.x - this.dragOffset.x;
-            layer.y = pos.y - this.dragOffset.y;
-            this.render();
+        if (!this.baseImage) return;
+
+        // التكبير والتصغير بصباعين (Pinch to Zoom)
+        if (e.touches && e.touches.length === 2 && this.initialPinchDistance) {
+            const currentDistance = this.getDistance(e.touches[0], e.touches[1]);
+            const scale = currentDistance / this.initialPinchDistance;
+
+            const layer = this.getSelectedLayer();
+            if (layer && this.initialFontSize) {
+                // تكبير وتصغير النص
+                let newSize = this.initialFontSize * scale;
+                newSize = Math.max(8, Math.min(newSize, 500)); // حدود الحجم
+                
+                if (this.elements.fontSize) this.elements.fontSize.value = Math.round(newSize);
+                if (this.elements.fontSizeSlider) this.elements.fontSizeSlider.value = Math.round(newSize);
+                this.updateSelectedLayer({ fontSize: Math.round(newSize) });
+            } else if (this.initialZoom) {
+                // تكبير وتصغير الصورة الخلفية
+                this.setZoom(this.initialZoom * scale);
+            }
+            e.preventDefault();
+            return;
         }
-        
-        e.preventDefault();
+
+        // السحب بصباع واحد
+        if (this.isDragging && this.selectedLayerId) {
+            const pos = this.getPointerPosition(e);
+            const layer = this.getSelectedLayer();
+            
+            if (layer) {
+                layer.x = pos.x - this.dragOffset.x;
+                layer.y = pos.y - this.dragOffset.y;
+                this.render();
+            }
+            e.preventDefault();
+        }
     }
 
-    handlePointerUp() {
+    handlePointerUp(e) {
         if (this.isDragging) {
             this.isDragging = false;
             this.saveToHistory();
+        }
+        
+        // إعادة تعيين حسابات الصباعين لو اترفعوا من الشاشة
+        if (!e.touches || e.touches.length < 2) {
+            this.initialPinchDistance = null;
+            this.initialFontSize = null;
+            this.initialZoom = null;
         }
     }
 
@@ -551,7 +595,7 @@ class ImageEditor {
         const rect = this.canvas.getBoundingClientRect();
         let clientX, clientY;
         
-        if (e.touches) {
+        if (e.touches && e.touches.length > 0) {
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
         } else {
