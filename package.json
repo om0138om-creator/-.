@@ -1,0 +1,40 @@
+{
+    "name": "font-studio-pro",
+    "version": "1.0.0",
+    "description": "تطبيق احترافي لتحرير الصور وإضافة النصوص بخطوط مخصصة",
+    "main": "index.html",
+    "scripts": {
+        "start": "npx serve www",
+        "build": "mkdir -p www && cp *.html *.css *.js *.json www/ && cp -r icons www/ 2>/dev/null || true",
+        "cap:init": "npx cap init 'Font Studio Pro' 'com.fontstudio.pro' --web-dir=www",
+        "cap:add": "npx cap add android",
+        "cap:sync": "npx cap sync",
+        "cap:open": "npx cap open android",
+        "cap:build": "npm run build && npx cap sync",
+        "android:debug": "cd android && ./gradlew assembleDebug",
+        "android:release": "cd android && ./gradlew assembleRelease"
+    },
+    "keywords": [
+        "font",
+        "editor",
+        "photo",
+        "design",
+        "arabic",
+        "android",
+        "pwa"
+    ],
+    "author": "Font Studio Team",
+    "license": "MIT",
+    "dependencies": {
+        "@capacitor/android": "^5.6.0",
+        "@capacitor/core": "^5.6.0",
+        "@capacitor/filesystem": "^5.2.0",
+        "@capacitor/share": "^5.0.7",
+        "@capacitor/splash-screen": "^5.0.7",
+        "@capacitor/status-bar": "^5.0.7"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^5.6.0",
+        "serve": "^14.2.1"
+    }
+}
