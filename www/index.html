@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="محرر الخطوط الاحترافي - صمم صورك بخطوط مخصصة">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>فونت ستوديو | Font Studio Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    
+    <!-- Google Fonts للأيقونات -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0">
+    
+    <!-- الخط العربي الافتراضي -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- شاشة التحميل الافتتاحية -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">
+                <span class="logo-icon">🎨</span>
+                <div class="logo-rings">
+                    <div class="ring ring-1"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="ring ring-3"></div>
+                </div>
+            </div>
+            <h1 class="splash-title">Font Studio Pro</h1>
+            <p class="splash-subtitle">جاري تحميل الإبداع...</p>
+            <div class="splash-loader">
+                <div class="loader-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الهيدر الرئيسي -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <span class="app-logo">🎨</span>
+                <div class="app-title">
+                    <h1>Font Studio</h1>
+                    <span class="app-badge">PRO</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <!-- زر الوضع الليلي -->
+                <button id="theme-toggle" class="icon-btn tooltip" data-tooltip="تبديل السمة">
+                    <span class="material-symbols-rounded sun-icon">light_mode</span>
+                    <span class="material-symbols-rounded moon-icon">dark_mode</span>
+                </button>
+                
+                <!-- زر الإعدادات -->
+                <button id="settings-btn" class="icon-btn tooltip" data-tooltip="الإعدادات">
+                    <span class="material-symbols-rounded">settings</span>
+                </button>
+                
+                <!-- زر المعلومات -->
+                <button id="info-btn" class="icon-btn tooltip" data-tooltip="حول التطبيق">
+                    <span class="material-symbols-rounded">info</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- التنقل بين الصفحات -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-page="fonts">
+            <span class="material-symbols-rounded">font_download</span>
+            <span class="nav-label">الخطوط</span>
+            <span class="nav-indicator"></span>
+        </button>
+        <button class="nav-item" data-page="editor">
+            <span class="material-symbols-rounded">edit</span>
+            <span class="nav-label">المحرر</span>
+            <span class="nav-indicator"></span>
+        </button>
+        <button class="nav-item" data-page="gallery">
+            <span class="material-symbols-rounded">collections</span>
+            <span class="nav-label">أعمالي</span>
+            <span class="nav-indicator"></span>
+        </button>
+        <button class="nav-item" data-page="templates">
+            <span class="material-symbols-rounded">dashboard</span>
+            <span class="nav-label">قوالب</span>
+            <span class="nav-indicator"></span>
+        </button>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+        
+        <!-- ================== صفحة إدارة الخطوط ================== -->
+        <section id="fonts-page" class="page active">
+            <div class="page-header">
+                <h2 class="page-title">
+                    <span class="material-symbols-rounded">font_download</span>
+                    مكتبة الخطوط
+                </h2>
+                <span class="fonts-count" id="fonts-count">0 خط</span>
+            </div>
+
+            <!-- شريط البحث -->
+            <div class="search-container">
+                <div class="search-box">
+                    <span class="material-symbols-rounded search-icon">search</span>
+                    <input type="text" id="font-search" placeholder="ابحث عن خط..." autocomplete="off">
+                    <button id="clear-search" class="clear-btn hidden">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <button id="filter-btn" class="filter-btn tooltip" data-tooltip="تصفية">
+                    <span class="material-symbols-rounded">filter_list</span>
+                </button>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="action-buttons">
+                <button id="upload-font-btn" class="primary-btn pulse-animation">
+                    <span class="material-symbols-rounded">add_circle</span>
+                    <span>رفع خط جديد</span>
+                </button>
+                <button id="upload-multiple-btn" class="secondary-btn">
+                    <span class="material-symbols-rounded">library_add</span>
+                    <span>رفع عدة خطوط</span>
+                </button>
+            </div>
+
+            <!-- منطقة السحب والإفلات -->
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <span class="material-symbols-rounded drop-icon">cloud_upload</span>
+                    <p class="drop-text">اسحب ملفات الخطوط هنا</p>
+                    <p class="drop-hint">أو انقر لاختيار الملفات</p>
+                    <p class="drop-formats">يدعم: TTF, OTF, WOFF, WOFF2</p>
+                </div>
+                <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" multiple hidden>
+            </div>
+
+            <!-- قائمة الخطوط -->
+            <div id="fonts-list" class="fonts-list">
+                <!-- سيتم إضافة الخطوط هنا ديناميكياً -->
+            </div>
+
+            <!-- رسالة عدم وجود خطوط -->
+            <div id="empty-fonts" class="empty-state">
+                <div class="empty-illustration">
+                    <span class="material-symbols-rounded">text_fields</span>
+                </div>
+                <h3>لا توجد خطوط بعد</h3>
+                <p>ابدأ برفع خطوطك المفضلة لاستخدامها في تصميماتك</p>
+            </div>
+        </section>
+
+        <!-- ================== صفحة محرر الصور ================== -->
+        <section id="editor-page" class="page">
+            <div class="editor-container">
+                
+                <!-- منطقة الكانفاس -->
+                <div class="canvas-wrapper">
+                    <div id="canvas-container" class="canvas-container">
+                        <!-- رسالة ترحيبية قبل رفع صورة -->
+                        <div id="canvas-placeholder" class="canvas-placeholder">
+                            <span class="material-symbols-rounded">add_photo_alternate</span>
+                            <h3>ابدأ إبداعك</h3>
+                            <p>ارفع صورة لبدء التصميم</p>
+                            <button id="upload-image-placeholder-btn" class="upload-placeholder-btn">
+                                <span class="material-symbols-rounded">upload</span>
+                                رفع صورة
+                            </button>
+                        </div>
+                        
+                        <!-- الكانفاس الفعلي -->
+                        <canvas id="main-canvas"></canvas>
+                        
+                        <!-- طبقة التحكم بالنصوص -->
+                        <div id="text-controls-layer" class="text-controls-layer hidden"></div>
+                    </div>
+                    
+                    <!-- أزرار التكبير والتصغير -->
+                    <div class="zoom-controls">
+                        <button id="zoom-out" class="zoom-btn tooltip" data-tooltip="تصغير">
+                            <span class="material-symbols-rounded">remove</span>
+                        </button>
+                        <span id="zoom-level" class="zoom-level">100%</span>
+                        <button id="zoom-in" class="zoom-btn tooltip" data-tooltip="تكبير">
+                            <span class="material-symbols-rounded">add</span>
+                        </button>
+                        <button id="zoom-fit" class="zoom-btn tooltip" data-tooltip="ملائمة">
+                            <span class="material-symbols-rounded">fit_screen</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- شريط الأدوات الجانبي -->
+                <aside class="editor-sidebar">
+                    <div class="sidebar-tabs">
+                        <button class="sidebar-tab active" data-tab="image-tab">
+                            <span class="material-symbols-rounded">image</span>
+                            <span>الصورة</span>
+                        </button>
+                        <button class="sidebar-tab" data-tab="text-tab">
+                            <span class="material-symbols-rounded">title</span>
+                            <span>النص</span>
+                        </button>
+                        <button class="sidebar-tab" data-tab="layers-tab">
+                            <span class="material-symbols-rounded">layers</span>
+                            <span>الطبقات</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-content">
+                        
+                        <!-- تبويب الصورة -->
+                        <div id="image-tab" class="tab-panel active">
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">photo_library</span>
+                                    الصورة الأساسية
+                                </h4>
+                                <div class="image-actions">
+                                    <button id="upload-image-btn" class="action-btn">
+                                        <span class="material-symbols-rounded">upload</span>
+                                        رفع صورة
+                                    </button>
+                                    <button id="camera-btn" class="action-btn">
+                                        <span class="material-symbols-rounded">photo_camera</span>
+                                        الكاميرا
+                                    </button>
+                                </div>
+                                <input type="file" id="image-file-input" accept="image/*" hidden>
+                                <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">tune</span>
+                                    تعديلات الصورة
+                                </h4>
+                                
+                                <div class="slider-group">
+                                    <label>
+                                        <span>السطوع</span>
+                                        <span id="brightness-value">0</span>
+                                    </label>
+                                    <input type="range" id="brightness-slider" min="-100" max="100" value="0">
+                                </div>
+                                
+                                <div class="slider-group">
+                                    <label>
+                                        <span>التباين</span>
+                                        <span id="contrast-value">0</span>
+                                    </label>
+                                    <input type="range" id="contrast-slider" min="-100" max="100" value="0">
+                                </div>
+                                
+                                <div class="slider-group">
+                                    <label>
+                                        <span>التشبع</span>
+                                        <span id="saturation-value">0</span>
+                                    </label>
+                                    <input type="range" id="saturation-slider" min="-100" max="100" value="0">
+                                </div>
+
+                                <button id="reset-adjustments" class="text-btn">
+                                    <span class="material-symbols-rounded">restart_alt</span>
+                                    إعادة تعيين
+                                </button>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">filter</span>
+                                    فلاتر سريعة
+                                </h4>
+                                <div class="filters-grid">
+                                    <button class="filter-item active" data-filter="none">
+                                        <span class="filter-preview original"></span>
+                                        <span>أصلي</span>
+                                    </button>
+                                    <button class="filter-item" data-filter="grayscale">
+                                        <span class="filter-preview grayscale"></span>
+                                        <span>رمادي</span>
+                                    </button>
+                                    <button class="filter-item" data-filter="sepia">
+                                        <span class="filter-preview sepia"></span>
+                                        <span>بني</span>
+                                    </button>
+                                    <button class="filter-item" data-filter="vintage">
+                                        <span class="filter-preview vintage"></span>
+                                        <span>كلاسيك</span>
+                                    </button>
+                                    <button class="filter-item" data-filter="cold">
+                                        <span class="filter-preview cold"></span>
+                                        <span>بارد</span>
+                                    </button>
+                                    <button class="filter-item" data-filter="warm">
+                                        <span class="filter-preview warm"></span>
+                                        <span>دافئ</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- تبويب النص -->
+                        <div id="text-tab" class="tab-panel">
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">add</span>
+                                    إضافة نص
+                                </h4>
+                                <button id="add-text-btn" class="action-btn full-width">
+                                    <span class="material-symbols-rounded">add_circle</span>
+                                    إضافة نص جديد
+                                </button>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">edit_note</span>
+                                    محتوى النص
+                                </h4>
+                                <textarea id="text-content" class="text-input" placeholder="اكتب نصك هنا..." rows="3"></textarea>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">font_download</span>
+                                    الخط
+                                </h4>
+                                <div class="font-selector">
+                                    <select id="font-select" class="select-input">
+                                        <option value="Tajawal">الخط الافتراضي</option>
+                                        <!-- سيتم إضافة الخطوط المرفوعة هنا -->
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">format_size</span>
+                                    حجم الخط
+                                </h4>
+                                <div class="size-control">
+                                    <button id="size-decrease" class="size-btn">
+                                        <span class="material-symbols-rounded">remove</span>
+                                    </button>
+                                    <input type="number" id="font-size" class="size-input" value="48" min="8" max="500">
+                                    <button id="size-increase" class="size-btn">
+                                        <span class="material-symbols-rounded">add</span>
+                                    </button>
+                                </div>
+                                <input type="range" id="font-size-slider" min="8" max="200" value="48">
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">palette</span>
+                                    لون النص
+                                </h4>
+                                <div class="color-picker-container">
+                                    <input type="color" id="text-color" class="color-input" value="#ffffff">
+                                    <div class="color-presets">
+                                        <button class="color-preset" style="background: #ffffff" data-color="#ffffff"></button>
+                                        <button class="color-preset" style="background: #000000" data-color="#000000"></button>
+                                        <button class="color-preset" style="background: #ff0000" data-color="#ff0000"></button>
+                                        <button class="color-preset" style="background: #00ff00" data-color="#00ff00"></button>
+                                        <button class="color-preset" style="background: #0000ff" data-color="#0000ff"></button>
+                                        <button class="color-preset" style="background: #ffff00" data-color="#ffff00"></button>
+                                        <button class="color-preset" style="background: #ff00ff" data-color="#ff00ff"></button>
+                                        <button class="color-preset" style="background: #00ffff" data-color="#00ffff"></button>
+                                        <button class="color-preset" style="background: #ff6b6b" data-color="#ff6b6b"></button>
+                                        <button class="color-preset" style="background: #4ecdc4" data-color="#4ecdc4"></button>
+                                        <button class="color-preset" style="background: #ffe66d" data-color="#ffe66d"></button>
+                                        <button class="color-preset" style="background: #6366f1" data-color="#6366f1"></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">opacity</span>
+                                    الشفافية
+                                </h4>
+                                <div class="slider-group">
+                                    <input type="range" id="text-opacity" min="0" max="100" value="100">
+                                    <span id="opacity-value">100%</span>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">shadow</span>
+                                    ظل النص
+                                </h4>
+                                <div class="toggle-group">
+                                    <label class="toggle">
+                                        <input type="checkbox" id="shadow-toggle">
+                                        <span class="toggle-slider"></span>
+                                        <span class="toggle-label">تفعيل الظل</span>
+                                    </label>
+                                </div>
+                                <div id="shadow-options" class="shadow-options hidden">
+                                    <div class="slider-group">
+                                        <label>
+                                            <span>الإزاحة X</span>
+                                            <span id="shadow-x-value">2</span>
+                                        </label>
+                                        <input type="range" id="shadow-x" min="-20" max="20" value="2">
+                                    </div>
+                                    <div class="slider-group">
+                                        <label>
+                                            <span>الإزاحة Y</span>
+                                            <span id="shadow-y-value">2</span>
+                                        </label>
+                                        <input type="range" id="shadow-y" min="-20" max="20" value="2">
+                                    </div>
+                                    <div class="slider-group">
+                                        <label>
+                                            <span>الضبابية</span>
+                                            <span id="shadow-blur-value">4</span>
+                                        </label>
+                                        <input type="range" id="shadow-blur" min="0" max="50" value="4">
+                                    </div>
+                                    <div class="color-picker-mini">
+                                        <label>لون الظل</label>
+                                        <input type="color" id="shadow-color" value="#000000">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">border_style</span>
+                                    حدود النص
+                                </h4>
+                                <div class="toggle-group">
+                                    <label class="toggle">
+                                        <input type="checkbox" id="stroke-toggle">
+                                        <span class="toggle-slider"></span>
+                                        <span class="toggle-label">تفعيل الحدود</span>
+                                    </label>
+                                </div>
+                                <div id="stroke-options" class="stroke-options hidden">
+                                    <div class="slider-group">
+                                        <label>
+                                            <span>سمك الحدود</span>
+                                            <span id="stroke-width-value">2</span>
+                                        </label>
+                                        <input type="range" id="stroke-width" min="1" max="20" value="2">
+                                    </div>
+                                    <div class="color-picker-mini">
+                                        <label>لون الحدود</label>
+                                        <input type="color" id="stroke-color" value="#000000">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">rotate_right</span>
+                                    الدوران
+                                </h4>
+                                <div class="slider-group">
+                                    <input type="range" id="text-rotation" min="-180" max="180" value="0">
+                                    <span id="rotation-value">0°</span>
+                                </div>
+                                <div class="rotation-presets">
+                                    <button class="preset-btn" data-rotation="0">0°</button>
+                                    <button class="preset-btn" data-rotation="45">45°</button>
+                                    <button class="preset-btn" data-rotation="90">90°</button>
+                                    <button class="preset-btn" data-rotation="-45">-45°</button>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">format_align_center</span>
+                                    محاذاة النص
+                                </h4>
+                                <div class="alignment-buttons">
+                                    <button class="align-btn" data-align="right">
+                                        <span class="material-symbols-rounded">format_align_right</span>
+                                    </button>
+                                    <button class="align-btn active" data-align="center">
+                                        <span class="material-symbols-rounded">format_align_center</span>
+                                    </button>
+                                    <button class="align-btn" data-align="left">
+                                        <span class="material-symbols-rounded">format_align_left</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">format_bold</span>
+                                    تنسيق النص
+                                </h4>
+                                <div class="format-buttons">
+                                    <button id="bold-btn" class="format-btn tooltip" data-tooltip="عريض">
+                                        <span class="material-symbols-rounded">format_bold</span>
+                                    </button>
+                                    <button id="italic-btn" class="format-btn tooltip" data-tooltip="مائل">
+                                        <span class="material-symbols-rounded">format_italic</span>
+                                    </button>
+                                    <button id="underline-btn" class="format-btn tooltip" data-tooltip="تحته خط">
+                                        <span class="material-symbols-rounded">format_underlined</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">space_bar</span>
+                                    التباعد
+                                </h4>
+                                <div class="slider-group">
+                                    <label>
+                                        <span>تباعد الأحرف</span>
+                                        <span id="letter-spacing-value">0</span>
+                                    </label>
+                                    <input type="range" id="letter-spacing" min="-10" max="50" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <label>
+                                        <span>ارتفاع السطر</span>
+                                        <span id="line-height-value">1.2</span>
+                                    </label>
+                                    <input type="range" id="line-height" min="0.5" max="3" value="1.2" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- تبويب الطبقات -->
+                        <div id="layers-tab" class="tab-panel">
+                            <div class="panel-section">
+                                <h4 class="section-title">
+                                    <span class="material-symbols-rounded">layers</span>
+                                    طبقات النص
+                                </h4>
+                                <div id="layers-list" class="layers-list">
+                                    <!-- سيتم إضافة الطبقات هنا ديناميكياً -->
+                                </div>
+                                <div id="empty-layers" class="empty-layers">
+                                    <span class="material-symbols-rounded">layers_clear</span>
+                                    <p>لا توجد طبقات نص</p>
+                                    <p class="hint">أضف نصاً من تبويب "النص"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- شريط الأدوات السفلي للمحرر -->
+            <div class="editor-toolbar">
+                <button id="undo-btn" class="toolbar-btn tooltip" data-tooltip="تراجع" disabled>
+                    <span class="material-symbols-rounded">undo</span>
+                </button>
+                <button id="redo-btn" class="toolbar-btn tooltip" data-tooltip="إعادة" disabled>
+                    <span class="material-symbols-rounded">redo</span>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="delete-text-btn" class="toolbar-btn tooltip" data-tooltip="حذف النص المحدد" disabled>
+                    <span class="material-symbols-rounded">delete</span>
+                </button>
+                <button id="duplicate-text-btn" class="toolbar-btn tooltip" data-tooltip="تكرار النص" disabled>
+                    <span class="material-symbols-rounded">content_copy</span>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="clear-canvas-btn" class="toolbar-btn tooltip" data-tooltip="مسح الكل">
+                    <span class="material-symbols-rounded">delete_sweep</span>
+                </button>
+                <div class="toolbar-spacer"></div>
+                <button id="save-btn" class="toolbar-btn primary tooltip" data-tooltip="حفظ الصورة">
+                    <span class="material-symbols-rounded">save</span>
+                    <span class="btn-text">حفظ</span>
+                </button>
+                <button id="share-btn" class="toolbar-btn tooltip" data-tooltip="مشاركة">
+                    <span class="material-symbols-rounded">share</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ================== صفحة معرض الأعمال ================== -->
+        <section id="gallery-page" class="page">
+            <div class="page-header">
+                <h2 class="page-title">
+                    <span class="material-symbols-rounded">collections</span>
+                    أعمالي المحفوظة
+                </h2>
+                <button id="clear-gallery-btn" class="text-btn danger">
+                    <span class="material-symbols-rounded">delete_forever</span>
+                    مسح الكل
+                </button>
+            </div>
+
+            <div id="gallery-grid" class="gallery-grid">
+                <!-- سيتم إضافة الصور المحفوظة هنا -->
+            </div>
+
+            <div id="empty-gallery" class="empty-state">
+                <div class="empty-illustration">
+                    <span class="material-symbols-rounded">photo_library</span>
+                </div>
+                <h3>لا توجد أعمال محفوظة</h3>
+                <p>ابدأ بإنشاء تصميمك الأول وحفظه هنا</p>
+                <button class="go-to-editor-btn" data-page="editor">
+                    <span class="material-symbols-rounded">edit</span>
+                    انتقل للمحرر
+                </button>
+            </div>
+        </section>
+
+        <!-- ================== صفحة القوالب ================== -->
+        <section id="templates-page" class="page">
+            <div class="page-header">
+                <h2 class="page-title">
+                    <span class="material-symbols-rounded">dashboard</span>
+                    قوالب جاهزة
+                </h2>
+            </div>
+
+            <div class="templates-categories">
+                <button class="category-btn active" data-category="all">الكل</button>
+                <button class="category-btn" data-category="social">سوشيال ميديا</button>
+                <button class="category-btn" data-category="quotes">اقتباسات</button>
+                <button class="category-btn" data-category="business">أعمال</button>
+                <button class="category-btn" data-category="personal">شخصي</button>
+            </div>
+
+            <div id="templates-grid" class="templates-grid">
+                <!-- القوالب ستضاف هنا -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ================== النوافذ المنبثقة (Modals) ================== -->
+    
+    <!-- نافذة تعديل اسم الخط -->
+    <div id="edit-font-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span class="material-symbols-rounded">edit</span>
+                    تعديل اسم الخط
+                </h3>
+                <button class="modal-close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-font-name">الاسم الجديد</label>
+                    <input type="text" id="new-font-name" class="form-input" placeholder="أدخل اسم الخط...">
+                </div>
+                <div class="font-preview-box">
+                    <label>معاينة الخط</label>
+                    <p id="font-preview-text" class="preview-text">نص تجريبي - Preview Text</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">إلغاء</button>
+                <button id="save-font-name" class="btn-primary">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة حفظ الصورة -->
+    <div id="save-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span class="material-symbols-rounded">save</span>
+                    حفظ الصورة
+                </h3>
+                <button class="modal-close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="save-preview">
+                    <img id="save-preview-img" src="" alt="معاينة">
+                </div>
+                <div class="form-group">
+                    <label for="save-filename">اسم الملف</label>
+                    <input type="text" id="save-filename" class="form-input" value="تصميمي">
+                </div>
+                <div class="form-group">
+                    <label for="save-format">صيغة الملف</label>
+                    <select id="save-format" class="form-select">
+                        <option value="png">PNG (جودة عالية)</option>
+                        <option value="jpeg">JPEG (حجم أصغر)</option>
+                        <option value="webp">WebP (الأفضل للويب)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="quality-group">
+                    <label for="save-quality">الجودة: <span id="quality-value">90</span>%</label>
+                    <input type="range" id="save-quality" min="10" max="100" value="90">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">إلغاء</button>
+                <button id="download-btn" class="btn-primary">
+                    <span class="material-symbols-rounded">download</span>
+                    تحميل
+                </button>
+                <button id="save-to-gallery-btn" class="btn-success">
+                    <span class="material-symbols-rounded">collections</span>
+                    حفظ في المعرض
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الإعدادات -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>
+                    <span class="material-symbols-rounded">settings</span>
+                    الإعدادات
+                </h3>
+                <button class="modal-close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>المظهر</h4>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">dark_mode</span>
+                            <div>
+                                <p class="setting-title">الوضع الليلي</p>
+                                <p class="setting-desc">تفعيل المظهر الداكن للتطبيق</p>
+                            </div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="dark-mode-setting">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">animation</span>
+                            <div>
+                                <p class="setting-title">الحركات والتأثيرات</p>
+                                <p class="setting-desc">تفعيل الانتقالات المتحركة</p>
+                            </div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="animations-setting" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>المحرر</h4>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">grid_on</span>
+                            <div>
+                                <p class="setting-title">خطوط الشبكة</p>
+                                <p class="setting-desc">عرض شبكة مساعدة على الكانفاس</p>
+                            </div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="grid-setting">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">straighten</span>
+                            <div>
+                                <p class="setting-title">المساطر</p>
+                                <p class="setting-desc">عرض مساطر القياس</p>
+                            </div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="rulers-setting">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">auto_fix_high</span>
+                            <div>
+                                <p class="setting-title">الحفظ التلقائي</p>
+                                <p class="setting-desc">حفظ العمل تلقائياً</p>
+                            </div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="autosave-setting" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>البيانات</h4>
+                    <div class="setting-item clickable" id="export-data-btn">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">upload_file</span>
+                            <div>
+                                <p class="setting-title">تصدير البيانات</p>
+                                <p class="setting-desc">تصدير الخطوط والإعدادات</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-rounded chevron">chevron_left</span>
+                    </div>
+                    <div class="setting-item clickable" id="import-data-btn">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">download</span>
+                            <div>
+                                <p class="setting-title">استيراد البيانات</p>
+                                <p class="setting-desc">استيراد خطوط وإعدادات</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-rounded chevron">chevron_left</span>
+                    </div>
+                    <div class="setting-item clickable danger" id="clear-data-btn">
+                        <div class="setting-info">
+                            <span class="material-symbols-rounded">delete_forever</span>
+                            <div>
+                                <p class="setting-title">مسح جميع البيانات</p>
+                                <p class="setting-desc">حذف كل الخطوط والأعمال</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-rounded chevron">chevron_left</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة حول التطبيق -->
+    <div id="info-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span class="material-symbols-rounded">info</span>
+                    حول التطبيق
+                </h3>
+                <button class="modal-close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body center">
+                <div class="app-info">
+                    <div class="app-icon-large">🎨</div>
+                    <h2>Font Studio Pro</h2>
+                    <p class="version">الإصدار 1.0.0</p>
+                    <p class="description">
+                        تطبيق احترافي لتحرير الصور وإضافة النصوص بخطوط مخصصة.
+                        صمم لتكون تجربة المستخدم سلسة وممتعة.
+                    </p>
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <span>دعم جميع صيغ الخطوط</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <span>محرر صور متقدم</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <span>طبقات نص متعددة</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <span>تصدير بجودة عالية</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة معاينة صورة المعرض -->
+    <div id="gallery-preview-modal" class="modal fullscreen">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close floating">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+            <div class="gallery-preview-container">
+                <img id="gallery-preview-img" src="" alt="معاينة">
+            </div>
+            <div class="gallery-preview-actions">
+                <button id="gallery-download-btn" class="action-btn">
+                    <span class="material-symbols-rounded">download</span>
+                    تحميل
+                </button>
+                <button id="gallery-share-btn" class="action-btn">
+                    <span class="material-symbols-rounded">share</span>
+                    مشاركة
+                </button>
+                <button id="gallery-edit-btn" class="action-btn">
+                    <span class="material-symbols-rounded">edit</span>
+                    تعديل
+                </button>
+                <button id="gallery-delete-btn" class="action-btn danger">
+                    <span class="material-symbols-rounded">delete</span>
+                    حذف
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التأكيد -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3 id="confirm-title">تأكيد</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">هل أنت متأكد؟</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="confirm-cancel">إلغاء</button>
+                <button class="btn-danger" id="confirm-ok">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه (Toast) -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ================== السكريبتات ================== -->
+    <script src="fonts-manager.js"></script>
+    <script src="editor.js"></script>
+    
+    <!-- سكريبت التهيئة الأساسي -->
+    <script>
+        // إخفاء شاشة التحميل بعد تحميل الصفحة
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('hidden');
+            }, 2000);
+        });
+
+        // التنقل بين الصفحات
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
+                
+                // تحديث الأزرار النشطة
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // تحديث الصفحات
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(`${page}-page`).classList.add('active');
+            });
+        });
+
+        // زر الانتقال للمحرر من صفحة المعرض الفارغة
+        document.querySelectorAll('.go-to-editor-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('[data-page="editor"]').click();
+            });
+        });
+
+        // تبديل السمة (ليلي/نهاري)
+        const themeToggle = document.getElementById('theme-toggle');
+        const darkModeSetting = document.getElementById('dark-mode-setting');
+        
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-theme', isDark);
+            localStorage.setItem('darkMode', isDark);
+            if (darkModeSetting) darkModeSetting.checked = isDark;
+        }
+        
+        // تحميل السمة المحفوظة
+        const savedTheme = localStorage.getItem('darkMode');
+        if (savedTheme === 'true') {
+            setTheme(true);
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains('dark-theme');
+            setTheme(isDark);
+        });
+        
+        if (darkModeSetting) {
+            darkModeSetting.addEventListener('change', (e) => {
+                setTheme(e.target.checked);
+            });
+        }
+
+        // فتح وإغلاق النوافذ المنبثقة
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // إغلاق النوافذ عند الضغط على overlay أو زر الإغلاق
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.querySelector('.modal-overlay')?.addEventListener('click', () => {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+            
+            modal.querySelectorAll('.modal-close, .modal-cancel').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+        });
+
+        // زر الإعدادات
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            openModal('settings-modal');
+        });
+
+        // زر المعلومات
+        document.getElementById('info-btn').addEventListener('click', () => {
+            openModal('info-modal');
+        });
+
+        // تبويبات الشريط الجانبي في المحرر
+        document.querySelectorAll('.sidebar-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                
+                document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // دالة عرض التنبيهات
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: 'check_circle',
+                error: 'error',
+                warning: 'warning',
+                info: 'info'
+            };
+            
+            toast.innerHTML = `
+                <span class="material-symbols-rounded">${icons[type]}</span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // تفعيل الأنيميشن
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // إغلاق تلقائي
+            const autoClose = setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+            
+            // إغلاق يدوي
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                clearTimeout(autoClose);
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
+
+        // دالة التأكيد
+        function showConfirm(title, message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirm-modal');
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                
+                modal.classList.add('active');
+                
+                const okBtn = document.getElementById('confirm-ok');
+                const cancelBtn = document.getElementById('confirm-cancel');
+                
+                const cleanup = () => {
+                    modal.classList.remove('active');
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                };
+                
+                const onOk = () => {
+                    cleanup();
+                    resolve(true);
+                };
+                
+                const onCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        }
+
+        // جعل الدوال متاحة عالمياً
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.showToast = showToast;
+        window.showConfirm = showConfirm;
+    </script>
+</body>
+</html>
