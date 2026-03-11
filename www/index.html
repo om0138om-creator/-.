@@ -25,6 +25,33 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-box">
+            <div class="login-icon">🎨</div>
+            <h2>تطبيق خطوط آل سنجق</h2>
+            <p>يرجى إدخال كلمة المرور للمتابعة</p>
+            
+            <div class="input-group">
+                <input type="password" id="guest-pass" placeholder="كلمة سر الضيف (مؤقتة)">
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="vip-pass" placeholder="كلمة السر للأبد (دائمة)">
+            </div>
+            
+            <button id="login-btn" class="primary-btn pulse-animation">دخول التطبيق</button>
+        </div>
+    </div>
+
+    <div class="sanjak-header">
+        <div class="sanjak-welcome">مرحبا بك في تطبيق خطوط آل سنجق</div>
+        <div class="sanjak-credit">
+            التطبيق مصمم من قبل الأستاذ 
+            <a href="https://t.me/Om9r0" target="_blank" class="sanjak-name">عمر سنجق</a>
+        </div>
+    </div>
+
     <!-- شاشة التحميل الافتتاحية -->
     <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
@@ -1137,5 +1164,53 @@
         window.showToast = showToast;
         window.showConfirm = showConfirm;
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginOverlay = document.getElementById('login-overlay');
+            const loginBtn = document.getElementById('login-btn');
+            const guestPassInput = document.getElementById('guest-pass');
+            const vipPassInput = document.getElementById('vip-pass');
+
+            // التحقق عند فتح التطبيق
+            // sessionStorage = للضيف (يتم مسحه عند إغلاق التطبيق)
+            // localStorage = للأبد (لا يتم مسحه أبداً)
+            const isVip = localStorage.getItem('sanjak_vip_access');
+            const isGuest = sessionStorage.getItem('sanjak_guest_access');
+
+            if (isVip || isGuest) {
+                loginOverlay.style.display = 'none'; // إخفاء الشاشة لو مسجل دخول
+            }
+
+            // عند الضغط على زر الدخول
+            loginBtn.addEventListener('click', () => {
+                const guestVal = guestPassInput.value;
+                const vipVal = vipPassInput.value;
+
+                // كلمة السر الدائمة (تقدر تغير OmarVIP لأي باسورد إنت عايزه)
+                if (vipVal === 'OmarVIP') {
+                    localStorage.setItem('sanjak_vip_access', 'true');
+                    loginOverlay.style.display = 'none';
+                    showToast('تم تسجيل الدخول الدائم بنجاح! مرحبا أستاذ عمر', 'success');
+                } 
+                // كلمة سر الضيف
+                else if (guestVal === 'Omarsanjak13') {
+                    sessionStorage.setItem('sanjak_guest_access', 'true');
+                    loginOverlay.style.display = 'none';
+                    showToast('تم الدخول كضيف بنجاح!', 'info');
+                } 
+                else {
+                    showToast('كلمة المرور خاطئة!', 'error');
+                    if(guestVal) guestPassInput.classList.add('shake');
+                    if(vipVal) vipPassInput.classList.add('shake');
+                    setTimeout(() => {
+                        guestPassInput.classList.remove('shake');
+                        vipPassInput.classList.remove('shake');
+                    }, 500);
+                }
+            });
+        });
+    </script>
+    
+    
 </body>
 </html>
