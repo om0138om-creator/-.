@@ -2798,3 +2798,112 @@ input[type="range"]::-moz-range-thumb {
 .hidden {
     display: none !important;
 }
+
+/* ============================================
+   🎨 تعديلات عمر سنجق الخاصة
+   ============================================ */
+
+/* الشعار الثابت */
+.sanjak-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-bottom: 2px solid var(--primary);
+    z-index: 9999;
+    text-align: center;
+    padding: 8px 10px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sanjak-welcome {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sanjak-credit {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.sanjak-name {
+    color: red !important;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 1.1em;
+}
+
+/* عشان الهيدر الأساسي ينزل لتحت شوية ومايغطيش على الشعار */
+.main-header {
+    top: 55px !important;
+}
+.main-content {
+    padding-top: calc(var(--header-height) + 55px) !important;
+}
+
+/* شاشة تسجيل الدخول */
+.login-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-secondary);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.login-box {
+    background: var(--bg-primary);
+    padding: 40px 20px;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-xl);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    border: 2px solid var(--primary);
+}
+
+.login-icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+}
+
+.login-box h2 {
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.login-box p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: var(--font-size-sm);
+}
+
+.login-box .input-group {
+    margin-bottom: 15px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    text-align: center;
+    font-size: var(--font-size-md);
+}
+
+.login-box input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.login-box button {
+    width: 100%;
+    margin-top: 10px;
+}
