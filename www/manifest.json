@@ -1,22 +1,18 @@
 {
-    "name": "Font Studio Pro - محرر الخطوط الاحترافي",
-    "short_name": "Font Studio",
-    "description": "تطبيق احترافي لتحرير الصور وإضافة النصوص بخطوط مخصصة. صمم صورك بأسلوبك الخاص!",
-    "version": "1.0.0",
+    "name": "فونت ستوديو - محرر الخطوط الاحترافي",
+    "short_name": "فونت ستوديو",
+    "description": "تطبيق احترافي لمعاينة الخطوط المخصصة وتجربتها على الصور مع محرر متكامل",
+    "version": "2.0.0",
     "start_url": "/index.html",
-    "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
-    "theme_color": "#6366f1",
-    "background_color": "#0f172a",
+    "background_color": "#1a1a2e",
+    "theme_color": "#6c5ce7",
     "lang": "ar",
     "dir": "rtl",
-    "categories": [
-        "photo",
-        "design",
-        "utilities",
-        "productivity"
-    ],
+    "scope": "/",
+    "id": "com.fontstudio.app",
+    
     "icons": [
         {
             "src": "icons/icon-72x72.png",
@@ -67,6 +63,7 @@
             "purpose": "maskable any"
         }
     ],
+    
     "screenshots": [
         {
             "src": "screenshots/screenshot1.png",
@@ -79,34 +76,48 @@
             "sizes": "1080x1920",
             "type": "image/png",
             "label": "محرر الصور"
+        },
+        {
+            "src": "screenshots/screenshot3.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "إدارة الخطوط"
         }
     ],
+    
+    "categories": [
+        "photo",
+        "design",
+        "utilities"
+    ],
+    
     "shortcuts": [
         {
-            "name": "إضافة خط جديد",
-            "short_name": "رفع خط",
-            "description": "رفع خط جديد للمكتبة",
-            "url": "/index.html?action=upload-font",
+            "name": "تصميم جديد",
+            "short_name": "جديد",
+            "description": "إنشاء تصميم جديد",
+            "url": "/index.html?action=new",
             "icons": [
                 {
-                    "src": "icons/shortcut-font.png",
-                    "sizes": "192x192"
+                    "src": "icons/shortcut-new.png",
+                    "sizes": "96x96"
                 }
             ]
         },
         {
-            "name": "تصميم جديد",
-            "short_name": "تصميم",
-            "description": "بدء تصميم صورة جديدة",
-            "url": "/index.html?action=new-design",
+            "name": "إدارة الخطوط",
+            "short_name": "الخطوط",
+            "description": "فتح مدير الخطوط",
+            "url": "/index.html?page=fonts",
             "icons": [
                 {
-                    "src": "icons/shortcut-design.png",
-                    "sizes": "192x192"
+                    "src": "icons/shortcut-fonts.png",
+                    "sizes": "96x96"
                 }
             ]
         }
     ],
+    
     "share_target": {
         "action": "/index.html",
         "method": "POST",
@@ -124,6 +135,7 @@
             ]
         }
     },
+    
     "file_handlers": [
         {
             "action": "/index.html?handler=font",
@@ -133,34 +145,16 @@
                 "font/woff": [".woff"],
                 "font/woff2": [".woff2"]
             }
-        },
-        {
-            "action": "/index.html?handler=image",
-            "accept": {
-                "image/png": [".png"],
-                "image/jpeg": [".jpg", ".jpeg"],
-                "image/webp": [".webp"]
-            }
         }
     ],
-    "related_applications": [],
-    "prefer_related_applications": false,
-    "display_override": [
-        "window-controls-overlay",
-        "standalone",
-        "minimal-ui"
+    
+    "protocol_handlers": [
+        {
+            "protocol": "web+fontstudio",
+            "url": "/index.html?url=%s"
+        }
     ],
-    "edge_side_panel": {
-        "preferred_width": 400
-    },
-    "launch_handler": {
-        "client_mode": "focus-existing"
-    },
-    "handle_links": "preferred",
-    "capture_links": "existing-client-event",
-    "permissions_policy": {
-        "camera": ["self"],
-        "microphone": [],
-        "geolocation": []
-    }
+    
+    "related_applications": [],
+    "prefer_related_applications": false
 }
