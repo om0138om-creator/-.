@@ -239,15 +239,32 @@ class ImageEditor {
         
         // إضافة نص
         this.elements.addTextBtn?.addEventListener('click', () => {
-            this.addText();
+            if (!this.selectedLayer) this.addText();
+            this.elements.textPanel.classList.remove('active'); // إغلاق اللوحة
         });
         
-        this.elements.textInput?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+        // 🚀 الكتابة الحية والتحديث الفوري (من ابتكار عمر سنجق)
+        this.elements.textInput?.addEventListener('input', (e) => {
+            const text = e.target.value;
+            
+            if (this.selectedLayer) {
+                // لو في كلمة متحددة، تتغير فوراً مع كل حرف
+                this.selectedLayer.text = text || ' ';
+                this.renderTextOverlay();
+            } else if (text.trim().length > 0) {
+                // لو مفيش كلمة متحددة وبدأ يكتب، نضيف كلمة جديدة فوراً
                 this.addText();
             }
         });
+
+        // إغلاق اللوحة عند الضغط على Enter
+        this.elements.textInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.elements.textPanel.classList.remove('active');
+            }
+        });
+
         
         // نصوص سريعة
         this.elements.presetBtns?.forEach(btn => {
@@ -625,9 +642,8 @@ class ImageEditor {
      * إضافة نص
      */
     addText() {
-        const text = this.elements.textInput?.value.trim();
-        if (!text) {
-            showToast('يرجى إدخال نص', 'warning');
+        const text = this.elements.textInput?.value;
+        if (!text || text.trim() === '') {
             return;
         }
         
@@ -657,18 +673,12 @@ class ImageEditor {
         this.textLayers.push(layer);
         this.selectedLayer = layer;
         
-        // إعادة تعيين الإدخال
-        this.elements.textInput.value = '';
-        
-        // إغلاق اللوحة
-        this.elements.textPanel.classList.remove('active');
+        // تم مسح سطور إغلاق اللوحة ومسح النص بنجاح 🚀
         
         // تحديث العرض
         this.renderTextOverlay();
         this.renderLayersList();
         this.saveHistory();
-        
-        showToast('تمت إضافة النص', 'success');
     }
     
     /**
@@ -684,6 +694,7 @@ class ImageEditor {
             this.elements.textOverlay.appendChild(element);
         });
     }
+
     
     /**
      * إنشاء عنصر النص
@@ -842,13 +853,16 @@ class ImageEditor {
         const layer = this.textLayers.find(l => l.id === layerId);
         if (!layer) return;
         
-        const newText = prompt('تعديل النص:', layer.text);
-        if (newText !== null && newText.trim()) {
-            layer.text = newText.trim();
-            this.renderTextOverlay();
-            this.saveHistory();
+        // فتح لوحة النص السفلية فوراً
+        this.elements.textPanel.classList.add('active');
+        
+        // نقل النص للمربع وتحديده
+        if (this.elements.textInput) {
+            this.elements.textInput.value = layer.text;
+            this.elements.textInput.focus();
         }
     }
+
     
     /**
      * نسخ طبقة
