@@ -1051,40 +1051,54 @@ class ImageEditor {
     }
     
     /**
-     * معالجة بدء اللمس
+     * 🚀 معالجة بدء اللمس (بصباع أو صباعين) - كود جبار وسلس
      */
     handleTouchStart(e) {
         if (e.touches.length === 2) {
-            // Pinch to zoom
             e.preventDefault();
             this.isPinching = true;
             this.lastTouchDistance = this.getTouchDistance(e.touches);
+            
+            // تحديد هل اللمس بصباعين كان على النص ولا على الخلفية
+            const target = e.target.closest('.text-layer');
+            if (target && this.selectedLayer && parseInt(target.dataset.layerId) === this.selectedLayer.id) {
+                this.isPinchingText = true; // بيكبر النص
+            } else {
+                this.isPinchingText = false; // بيكبر الصورة
+            }
         } else if (e.touches.length === 1) {
             this.handlePointerDown(e.touches[0]);
         }
     }
     
     /**
-     * معالجة حركة اللمس
+     * 🚀 معالجة حركة اللمس (السحب أو التكبير) بسرعة البرق
      */
     handleTouchMove(e) {
         if (this.isPinching && e.touches.length === 2) {
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             const distance = this.getTouchDistance(e.touches);
             const scale = distance / this.lastTouchDistance;
             
-            if (this.selectedLayer) {
-                // تكبير/تصغير النص المحدد
+            if (this.isPinchingText && this.selectedLayer) {
+                // تكبير/تصغير النص المحدد بصباعين (سلاسة تامة)
                 this.selectedLayer.fontSize *= scale;
                 this.selectedLayer.fontSize = Math.max(8, Math.min(500, this.selectedLayer.fontSize));
-                this.renderTextOverlay();
+                
+                // تحديث مباشر للـ DOM بدون إعادة رسم
+                const el = document.querySelector(`.text-layer[data-layer-id="${this.selectedLayer.id}"]`);
+                if (el) {
+                    el.style.fontSize = `${this.selectedLayer.fontSize * this.scale}px`;
+                }
             } else {
-                // تكبير/تصغير Canvas
+                // تكبير/تصغير الصورة الخلفية
                 this.zoom(scale);
             }
             
             this.lastTouchDistance = distance;
         } else if (e.touches.length === 1) {
+            // منع التمرير الافتراضي للشاشة أثناء السحب
+            if (e.cancelable) e.preventDefault(); 
             this.handlePointerMove(e.touches[0]);
         }
     }
@@ -1095,6 +1109,7 @@ class ImageEditor {
     handleTouchEnd(e) {
         if (this.isPinching) {
             this.isPinching = false;
+            this.isPinchingText = false;
             this.saveHistory();
         }
         this.handlePointerUp(e);
@@ -1110,7 +1125,7 @@ class ImageEditor {
     }
     
     /**
-     * معالجة بدء السحب
+     * 🚀 معالجة بدء السحب بصباع واحد
      */
     handlePointerDown(e) {
         const target = e.target?.closest?.('.text-layer');
@@ -1120,37 +1135,44 @@ class ImageEditor {
             this.selectLayer(layerId);
             
             this.isDragging = true;
-            this.dragStartX = e.clientX;
-            this.dragStartY = e.clientY;
+            this.dragStartX = e.clientX || e.touches?.[0]?.clientX;
+            this.dragStartY = e.clientY || e.touches?.[0]?.clientY;
         } else {
-            // إلغاء الاختيار عند النقر خارج النص
+            // إلغاء الاختيار عند النقر خارج النص وإغلاق اللوحات
             this.selectedLayer = null;
-            document.querySelectorAll('.text-layer').forEach(el => {
-                el.classList.remove('selected');
-            });
+            document.querySelectorAll('.text-layer').forEach(el => el.classList.remove('selected'));
         }
     }
     
     /**
-     * معالجة حركة السحب
+     * 🚀 السحب الناعم: معالجة حركة السحب
      */
     handlePointerMove(e) {
         if (!this.isDragging || !this.selectedLayer) return;
         
-        const dx = e.clientX - this.dragStartX;
-        const dy = e.clientY - this.dragStartY;
+        const clientX = e.clientX || e.touches?.[0]?.clientX;
+        const clientY = e.clientY || e.touches?.[0]?.clientY;
         
-        // تحويل الإزاحة إلى إحداثيات Canvas
+        const dx = clientX - this.dragStartX;
+        const dy = clientY - this.dragStartY;
+        
+        // تحويل الإزاحة إلى إحداثيات Canvas مع مراعاة التكبير (zoom)
         const scaleFactor = 1 / this.scale;
-        
         this.selectedLayer.x += dx * scaleFactor;
         this.selectedLayer.y += dy * scaleFactor;
         
         // تحديث نقطة البداية
-        this.dragStartX = e.clientX;
-        this.dragStartY = e.clientY;
+        this.dragStartX = clientX;
+        this.dragStartY = clientY;
         
-        this.renderTextOverlay();
+        // تحديث مباشر للـ DOM لضمان سلاسة InShot (بدون ريندر كامل)
+        const el = document.querySelector(`.text-layer[data-layer-id="${this.selectedLayer.id}"]`);
+        if (el) {
+            const x = (this.selectedLayer.x / this.canvas.width) * 100;
+            const y = (this.selectedLayer.y / this.canvas.height) * 100;
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+        }
     }
     
     /**
@@ -1165,22 +1187,24 @@ class ImageEditor {
     }
     
     /**
-     * بدء تغيير الحجم
+     * 🚀 السحب من الزاوية (المقبض) لتغيير الحجم بنعومة
      */
     startResize(e, layer) {
         this.isResizing = true;
         this.selectedLayer = layer;
-        this.dragStartX = e.clientX;
-        this.dragStartY = e.clientY;
+        this.dragStartX = e.clientX || e.touches?.[0]?.clientX;
+        this.dragStartY = e.clientY || e.touches?.[0]?.clientY;
         
         const moveHandler = (e) => {
             if (!this.isResizing) return;
+            if (e.cancelable) e.preventDefault();
             
             const clientX = e.clientX || e.touches?.[0]?.clientX;
             const clientY = e.clientY || e.touches?.[0]?.clientY;
             
             const dx = clientX - this.dragStartX;
             const dy = clientY - this.dragStartY;
+            
             const delta = Math.sqrt(dx * dx + dy * dy) * Math.sign(dx + dy);
             
             layer.fontSize += delta * 0.5;
@@ -1189,7 +1213,11 @@ class ImageEditor {
             this.dragStartX = clientX;
             this.dragStartY = clientY;
             
-            this.renderTextOverlay();
+            // تحديث الحجم مباشرة في الشاشة
+            const el = document.querySelector(`.text-layer[data-layer-id="${layer.id}"]`);
+            if (el) {
+                el.style.fontSize = `${layer.fontSize * this.scale}px`;
+            }
         };
         
         const upHandler = () => {
@@ -1206,6 +1234,7 @@ class ImageEditor {
         document.addEventListener('mouseup', upHandler);
         document.addEventListener('touchend', upHandler);
     }
+
     
     /**
      * عرض قائمة الطبقات
