@@ -13,6 +13,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-box">
+            <div class="login-icon">🎨</div>
+            <h2>فونت ستوديو</h2>
+            <p>يرجى إدخال كلمة المرور للمتابعة</p>
+            
+            <div class="input-group">
+                <input type="password" id="guest-pass" placeholder="كلمة سر الضيف (مؤقتة)">
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="vip-pass" placeholder="كلمة السر للأبد (دائمة)">
+            </div>
+            
+            <button id="login-btn" class="primary-btn">دخول التطبيق</button>
+        </div>
+    </div>
+
     <!-- شاشة البداية Splash Screen -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-content">
@@ -737,5 +755,42 @@
     <!-- ملفات JavaScript -->
     <script src="fonts-manager.js"></script>
     <script src="editor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginOverlay = document.getElementById('login-overlay');
+            const loginBtn = document.getElementById('login-btn');
+            const guestPassInput = document.getElementById('guest-pass');
+            const vipPassInput = document.getElementById('vip-pass');
+
+            // التحقق عند فتح التطبيق
+            const isVip = localStorage.getItem('sanjak_vip_access');
+            const isGuest = sessionStorage.getItem('sanjak_guest_access');
+
+            if (isVip || isGuest) {
+                loginOverlay.style.display = 'none'; 
+            }
+
+            // عند الضغط على زر الدخول
+            loginBtn.addEventListener('click', () => {
+                const guestVal = guestPassInput.value;
+                const vipVal = vipPassInput.value;
+
+                if (vipVal === 'OmarVIP') {
+                    localStorage.setItem('sanjak_vip_access', 'true');
+                    loginOverlay.style.display = 'none';
+                    if(typeof showToast === 'function') showToast('تم تسجيل الدخول الدائم بنجاح!', 'success');
+                } 
+                else if (guestVal === 'Omarsanjak13') {
+                    sessionStorage.setItem('sanjak_guest_access', 'true');
+                    loginOverlay.style.display = 'none';
+                    if(typeof showToast === 'function') showToast('تم الدخول كضيف بنجاح!', 'info');
+                } 
+                else {
+                    if(typeof showToast === 'function') showToast('كلمة المرور خاطئة!', 'error');
+                }
+            });
+        });
+    </script>
+    
 </body>
 </html>
