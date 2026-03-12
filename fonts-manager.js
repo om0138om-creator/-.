@@ -1,1098 +1,1097 @@
-/* ============================================
-   🔤 Font Studio Pro - Fonts Manager
-   ============================================
-   إدارة الخطوط مع IndexedDB للحفظ الدائم
-   ============================================ */
+/**
+ * ============================================
+ * فونت ستوديو - مدير الخطوط
+ * ============================================
+ * إدارة كاملة للخطوط المخصصة مع دعم IndexedDB
+ */
 
-// ============================================
-// 🗄️ قاعدة البيانات IndexedDB
-// ============================================
-
-class FontDatabase {
+class FontsManager {
     constructor() {
+        // إعدادات قاعدة البيانات
         this.dbName = 'FontStudioDB';
         this.dbVersion = 1;
         this.storeName = 'fonts';
         this.db = null;
+        
+        // حالة الخطوط
+        this.fonts = [];
+        this.selectedFont = null;
+        this.editingFontId = null;
+        this.currentFilter = 'all';
+        this.searchQuery = '';
+        this.sortOrder = 'name-asc';
+        
+        // العناصر
+        this.elements = {};
+        
+        // تهيئة
+        this.init();
     }
-
-    // فتح/إنشاء قاعدة البيانات
+    
+    /**
+     * تهيئة مدير الخطوط
+     */
     async init() {
+        await this.initDatabase();
+        await this.loadFonts();
+        this.cacheElements();
+        this.bindEvents();
+        this.renderFontsList();
+        this.updateStats();
+        this.loadSelectedFont();
+        
+        console.log('✅ FontsManager initialized successfully');
+    }
+    
+    /**
+     * تهيئة قاعدة البيانات IndexedDB
+     */
+    initDatabase() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.dbVersion);
-
+            
             request.onerror = () => {
-                console.error('❌ فشل فتح قاعدة البيانات:', request.error);
+                console.error('❌ Failed to open database');
                 reject(request.error);
             };
-
+            
             request.onsuccess = () => {
                 this.db = request.result;
-                console.log('✅ تم فتح قاعدة البيانات بنجاح');
-                resolve(this.db);
+                console.log('✅ Database opened successfully');
+                resolve();
             };
-
+            
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 
                 // إنشاء مخزن الخطوط
                 if (!db.objectStoreNames.contains(this.storeName)) {
                     const store = db.createObjectStore(this.storeName, { 
-                        keyPath: 'id',
+                        keyPath: 'id', 
                         autoIncrement: true 
                     });
                     
-                    // إنشاء فهارس للبحث السريع
+                    // إنشاء الفهارس
                     store.createIndex('name', 'name', { unique: false });
                     store.createIndex('originalName', 'originalName', { unique: false });
-                    store.createIndex('dateAdded', 'dateAdded', { unique: false });
+                    store.createIndex('category', 'category', { unique: false });
+                    store.createIndex('favorite', 'favorite', { unique: false });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
+                    store.createIndex('lastUsed', 'lastUsed', { unique: false });
                     
-                    console.log('✅ تم إنشاء مخزن الخطوط');
+                    console.log('✅ Object store created');
                 }
             };
         });
     }
-
-    // إضافة خط جديد
-    async addFont(fontData) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readwrite');
-            const store = transaction.objectStore(this.storeName);
-            
-            const request = store.add(fontData);
-            
-            request.onsuccess = () => {
-                console.log('✅ تم حفظ الخط:', fontData.name);
-                resolve(request.result);
-            };
-            
-            request.onerror = () => {
-                console.error('❌ فشل حفظ الخط:', request.error);
-                reject(request.error);
-            };
-        });
-    }
-
-    // الحصول على جميع الخطوط
-    async getAllFonts() {
+    
+    /**
+     * تحميل الخطوط من قاعدة البيانات
+     */
+    loadFonts() {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([this.storeName], 'readonly');
             const store = transaction.objectStore(this.storeName);
             const request = store.getAll();
             
             request.onsuccess = () => {
-                resolve(request.result || []);
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    // الحصول على خط بالـ ID
-    async getFont(id) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readonly');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.get(id);
-            
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    // تحديث خط
-    async updateFont(fontData) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readwrite');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.put(fontData);
-            
-            request.onsuccess = () => {
-                console.log('✅ تم تحديث الخط:', fontData.name);
-                resolve(request.result);
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    // حذف خط
-    async deleteFont(id) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readwrite');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.delete(id);
-            
-            request.onsuccess = () => {
-                console.log('✅ تم حذف الخط');
+                this.fonts = request.result || [];
+                
+                // تسجيل الخطوط في المتصفح
+                this.fonts.forEach(font => {
+                    this.registerFont(font);
+                });
+                
+                console.log(`✅ Loaded ${this.fonts.length} fonts`);
                 resolve();
             };
             
             request.onerror = () => {
+                console.error('❌ Failed to load fonts');
                 reject(request.error);
             };
         });
     }
-
-    // حذف جميع الخطوط
-    async clearAllFonts() {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readwrite');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.clear();
+    
+    /**
+     * تسجيل خط في المتصفح
+     */
+    registerFont(font) {
+        try {
+            const fontFace = new FontFace(font.fontFamily, `url(${font.dataUrl})`);
             
-            request.onsuccess = () => {
-                console.log('✅ تم حذف جميع الخطوط');
-                resolve();
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
+            fontFace.load().then((loadedFace) => {
+                document.fonts.add(loadedFace);
+                console.log(`✅ Font registered: ${font.fontFamily}`);
+            }).catch((error) => {
+                console.error(`❌ Failed to register font: ${font.fontFamily}`, error);
+            });
+        } catch (error) {
+            console.error('❌ Error registering font:', error);
+        }
     }
-
-    // البحث عن خطوط بالاسم
-    async searchFonts(query) {
-        const allFonts = await this.getAllFonts();
-        const lowerQuery = query.toLowerCase().trim();
-        
-        return allFonts.filter(font => 
-            font.name.toLowerCase().includes(lowerQuery) ||
-            font.originalName.toLowerCase().includes(lowerQuery)
-        );
-    }
-}
-
-// ============================================
-// 🎨 مدير الخطوط الرئيسي
-// ============================================
-
-class FontsManager {
-    constructor() {
-        this.db = new FontDatabase();
-        this.fonts = [];
-        this.loadedFontFaces = new Map();
-        this.selectedFontId = null;
-        this.editingFontId = null;
-        
-        // عناصر DOM
+    
+    /**
+     * حفظ العناصر في الذاكرة
+     */
+    cacheElements() {
         this.elements = {
-            fontsList: document.getElementById('fonts-list'),
-            fontsCount: document.getElementById('fonts-count'),
-            emptyFonts: document.getElementById('empty-fonts'),
-            searchInput: document.getElementById('font-search'),
-            clearSearchBtn: document.getElementById('clear-search'),
-            uploadBtn: document.getElementById('upload-font-btn'),
-            uploadMultipleBtn: document.getElementById('upload-multiple-btn'),
-            dropZone: document.getElementById('drop-zone'),
-            fontFileInput: document.getElementById('font-file-input'),
-            editModal: document.getElementById('edit-font-modal'),
-            newFontName: document.getElementById('new-font-name'),
-            fontPreviewText: document.getElementById('font-preview-text'),
-            saveFontNameBtn: document.getElementById('save-font-name'),
-            fontSelect: document.getElementById('font-select')
+            // قائمة الخطوط
+            fontsList: document.getElementById('fontsList'),
+            noFontsState: document.getElementById('noFontsState'),
+            
+            // البحث والترتيب
+            fontSearchInput: document.getElementById('fontSearchInput'),
+            clearSearchBtn: document.getElementById('clearSearchBtn'),
+            sortFontsBtn: document.getElementById('sortFontsBtn'),
+            
+            // التصنيفات
+            fontTabs: document.querySelectorAll('.font-tab'),
+            
+            // الإحصائيات
+            totalFonts: document.getElementById('totalFonts'),
+            favoriteFonts: document.getElementById('favoriteFonts'),
+            recentFonts: document.getElementById('recentFonts'),
+            
+            // أزرار الإضافة
+            addFontBtn: document.getElementById('addFontBtn'),
+            fontInput: document.getElementById('fontInput'),
+            
+            // مودال التعديل
+            editFontModal: document.getElementById('editFontModal'),
+            newFontName: document.getElementById('newFontName'),
+            fontCategory: document.getElementById('fontCategory'),
+            saveEditFont: document.getElementById('saveEditFont'),
+            cancelEditFont: document.getElementById('cancelEditFont'),
+            
+            // لوحة اختيار الخطوط
+            fontsPanel: document.getElementById('fontsPanel'),
+            fontPanelSearch: document.getElementById('fontPanelSearch'),
+            fontPanelList: document.getElementById('fontPanelList'),
+            
+            // التصدير والاستيراد
+            exportAllFonts: document.getElementById('exportAllFonts'),
+            importFontsBackup: document.getElementById('importFontsBackup'),
+            backupInput: document.getElementById('backupInput')
         };
+    }
+    
+    /**
+     * ربط الأحداث
+     */
+    bindEvents() {
+        // إضافة خط جديد
+        this.elements.addFontBtn?.addEventListener('click', () => {
+            this.elements.fontInput.click();
+        });
         
-        this.init();
-    }
-
-    // التهيئة
-    async init() {
-        try {
-            // فتح قاعدة البيانات
-            await this.db.init();
-            
-            // تحميل الخطوط المحفوظة
-            await this.loadSavedFonts();
-            
-            // إعداد المستمعين للأحداث
-            this.setupEventListeners();
-            
-            console.log('✅ تم تهيئة مدير الخطوط');
-        } catch (error) {
-            console.error('❌ فشل تهيئة مدير الخطوط:', error);
-            showToast('فشل في تحميل الخطوط المحفوظة', 'error');
-        }
-    }
-
-    // إعداد مستمعي الأحداث
-    setupEventListeners() {
-        // زر رفع خط
-        this.elements.uploadBtn?.addEventListener('click', () => {
-            this.elements.fontFileInput.click();
+        this.elements.fontInput?.addEventListener('change', (e) => {
+            this.handleFontUpload(e.target.files);
         });
-
-        // زر رفع عدة خطوط
-        this.elements.uploadMultipleBtn?.addEventListener('click', () => {
-            this.elements.fontFileInput.click();
-        });
-
-        // منطقة السحب والإفلات
-        this.setupDropZone();
-
-        // اختيار ملف
-        this.elements.fontFileInput?.addEventListener('change', (e) => {
-            this.handleFileSelect(e.target.files);
-            e.target.value = ''; // إعادة تعيين للسماح برفع نفس الملف مرة أخرى
-        });
-
+        
         // البحث
-        this.elements.searchInput?.addEventListener('input', (e) => {
-            this.handleSearch(e.target.value);
+        this.elements.fontSearchInput?.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value.trim();
+            this.toggleClearSearch();
+            this.renderFontsList();
         });
-
-        // مسح البحث
+        
         this.elements.clearSearchBtn?.addEventListener('click', () => {
-            this.elements.searchInput.value = '';
-            this.elements.clearSearchBtn.classList.add('hidden');
-            this.renderFontsList(this.fonts);
+            this.elements.fontSearchInput.value = '';
+            this.searchQuery = '';
+            this.toggleClearSearch();
+            this.renderFontsList();
         });
-
-        // حفظ اسم الخط الجديد
-        this.elements.saveFontNameBtn?.addEventListener('click', () => {
-            this.saveEditedFontName();
+        
+        // البحث في لوحة الخطوط
+        this.elements.fontPanelSearch?.addEventListener('input', (e) => {
+            this.renderFontPanelList(e.target.value.trim());
         });
-
-        // الضغط على Enter في حقل تعديل الاسم
-        this.elements.newFontName?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.saveEditedFontName();
-            }
+        
+        // الترتيب
+        this.elements.sortFontsBtn?.addEventListener('click', () => {
+            this.toggleSort();
         });
-
-        // تحديث المعاينة عند الكتابة
-        this.elements.newFontName?.addEventListener('input', (e) => {
-            const previewText = e.target.value || 'نص تجريبي - Preview Text';
-            this.elements.fontPreviewText.textContent = previewText;
-        });
-    }
-
-    // إعداد منطقة السحب والإفلات
-    setupDropZone() {
-        const dropZone = this.elements.dropZone;
-        if (!dropZone) return;
-
-        // منع السلوك الافتراضي
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+        
+        // التصنيفات
+        this.elements.fontTabs?.forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.elements.fontTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.currentFilter = tab.dataset.filter;
+                this.renderFontsList();
             });
         });
-
-        // تأثيرات بصرية عند السحب
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('drag-over');
+        
+        // مودال التعديل
+        this.elements.saveEditFont?.addEventListener('click', () => {
+            this.saveEditedFont();
+        });
+        
+        this.elements.cancelEditFont?.addEventListener('click', () => {
+            this.closeEditModal();
+        });
+        
+        this.elements.editFontModal?.querySelector('.modal-close')?.addEventListener('click', () => {
+            this.closeEditModal();
+        });
+        
+        // التصدير والاستيراد
+        this.elements.exportAllFonts?.addEventListener('click', () => {
+            this.exportFonts();
+        });
+        
+        this.elements.importFontsBackup?.addEventListener('click', () => {
+            this.elements.backupInput.click();
+        });
+        
+        this.elements.backupInput?.addEventListener('change', (e) => {
+            this.importFonts(e.target.files[0]);
+        });
+        
+        // إغلاق اللوحات عند النقر على الخلفية
+        document.querySelectorAll('.bottom-sheet .sheet-close').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.bottom-sheet').classList.remove('active');
             });
         });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('drag-over');
-            });
-        });
-
-        // معالجة الإفلات
-        dropZone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            this.handleFileSelect(files);
-        });
-
-        // النقر على منطقة السحب
-        dropZone.addEventListener('click', () => {
-            this.elements.fontFileInput.click();
-        });
     }
-
-    // تحميل الخطوط المحفوظة
-    async loadSavedFonts() {
-        try {
-            this.fonts = await this.db.getAllFonts();
-            
-            // تحميل كل خط في CSS
-            for (const font of this.fonts) {
-                await this.loadFontFace(font);
-            }
-            
-            // عرض القائمة
-            this.renderFontsList(this.fonts);
-            this.updateFontSelect();
-            
-            console.log(`✅ تم تحميل ${this.fonts.length} خط`);
-        } catch (error) {
-            console.error('❌ فشل تحميل الخطوط:', error);
-        }
-    }
-
-    // معالجة اختيار الملفات
-    async handleFileSelect(files) {
+    
+    /**
+     * معالجة رفع الخطوط
+     */
+    async handleFontUpload(files) {
         if (!files || files.length === 0) return;
-
+        
         const validExtensions = ['.ttf', '.otf', '.woff', '.woff2'];
-        const validFiles = [];
-
-        // التحقق من الملفات
+        let uploadedCount = 0;
+        
         for (const file of files) {
             const extension = '.' + file.name.split('.').pop().toLowerCase();
             
-            if (validExtensions.includes(extension)) {
-                validFiles.push(file);
-            } else {
-                showToast(`الملف "${file.name}" غير مدعوم`, 'warning');
+            if (!validExtensions.includes(extension)) {
+                showToast(`الملف ${file.name} غير مدعوم`, 'error');
+                continue;
             }
-        }
-
-        if (validFiles.length === 0) {
-            showToast('لم يتم العثور على ملفات خطوط صالحة', 'error');
-            return;
-        }
-
-        // رفع الملفات الصالحة
-        let successCount = 0;
-        
-        for (const file of validFiles) {
+            
             try {
-                await this.uploadFont(file);
-                successCount++;
+                const font = await this.processFont(file);
+                await this.saveFont(font);
+                uploadedCount++;
             } catch (error) {
-                console.error(`❌ فشل رفع ${file.name}:`, error);
-                showToast(`فشل رفع "${file.name}"`, 'error');
+                console.error(`❌ Failed to upload ${file.name}:`, error);
+                showToast(`فشل رفع ${file.name}`, 'error');
             }
         }
-
-        if (successCount > 0) {
-            showToast(`تم رفع ${successCount} خط بنجاح! 🎉`, 'success');
+        
+        if (uploadedCount > 0) {
+            showToast(`تم رفع ${uploadedCount} خط بنجاح`, 'success');
+            this.renderFontsList();
+            this.updateStats();
         }
+        
+        // إعادة تعيين الإدخال
+        this.elements.fontInput.value = '';
     }
-
-    // رفع خط واحد
-    async uploadFont(file) {
+    
+    /**
+     * معالجة ملف الخط
+     */
+    processFont(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             
-            reader.onload = async (e) => {
-                try {
-                    const fontData = {
-                        name: this.cleanFontName(file.name),
-                        originalName: file.name,
-                        data: e.target.result, // Base64
-                        mimeType: this.getMimeType(file.name),
-                        size: file.size,
-                        dateAdded: new Date().toISOString(),
-                        favorite: false
-                    };
-                    
-                    // حفظ في قاعدة البيانات
-                    const id = await this.db.addFont(fontData);
-                    fontData.id = id;
-                    
-                    // إضافة للقائمة المحلية
-                    this.fonts.push(fontData);
-                    
-                    // تحميل في CSS
-                    await this.loadFontFace(fontData);
-                    
-                    // تحديث العرض
-                    this.renderFontsList(this.fonts);
-                    this.updateFontSelect();
-                    
-                    resolve(fontData);
-                } catch (error) {
-                    reject(error);
-                }
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                const originalName = file.name;
+                const nameWithoutExt = originalName.replace(/\.(ttf|otf|woff|woff2)$/i, '');
+                
+                // إنشاء اسم فريد للخط
+                const fontFamily = `font_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                // تحديد التصنيف تلقائياً
+                const category = this.detectCategory(nameWithoutExt);
+                
+                const font = {
+                    name: nameWithoutExt,
+                    originalName: originalName,
+                    fontFamily: fontFamily,
+                    dataUrl: dataUrl,
+                    category: category,
+                    favorite: false,
+                    usageCount: 0,
+                    createdAt: Date.now(),
+                    lastUsed: null,
+                    fileSize: file.size,
+                    fileType: file.type || this.getMimeType(originalName)
+                };
+                
+                // تسجيل الخط
+                this.registerFont(font);
+                
+                resolve(font);
             };
             
-            reader.onerror = () => reject(reader.error);
+            reader.onerror = () => {
+                reject(reader.error);
+            };
+            
             reader.readAsDataURL(file);
         });
     }
-
-    // تنظيف اسم الخط
-    cleanFontName(fileName) {
-        return fileName
-            .replace(/\.(ttf|otf|woff|woff2)$/i, '')
-            .replace(/[-_]/g, ' ')
-            .replace(/([a-z])([A-Z])/g, '$1 $2')
-            .trim();
+    
+    /**
+     * اكتشاف تصنيف الخط
+     */
+    detectCategory(name) {
+        const arabicPattern = /[\u0600-\u06FF]/;
+        const englishPattern = /^[a-zA-Z\s\-_0-9]+$/;
+        
+        if (arabicPattern.test(name)) {
+            return 'arabic';
+        } else if (englishPattern.test(name)) {
+            return 'english';
+        }
+        
+        return 'mixed';
     }
-
-    // الحصول على نوع MIME
-    getMimeType(fileName) {
-        const extension = fileName.split('.').pop().toLowerCase();
+    
+    /**
+     * الحصول على نوع MIME
+     */
+    getMimeType(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
         const mimeTypes = {
             'ttf': 'font/ttf',
             'otf': 'font/otf',
             'woff': 'font/woff',
             'woff2': 'font/woff2'
         };
-        return mimeTypes[extension] || 'font/ttf';
+        return mimeTypes[ext] || 'application/octet-stream';
     }
-
-    // تحميل الخط في CSS
-    async loadFontFace(font) {
-        try {
-            // إنشاء اسم فريد للخط في CSS
-            const fontFamilyName = `custom-font-${font.id}`;
+    
+    /**
+     * حفظ الخط في قاعدة البيانات
+     */
+    saveFont(font) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.add(font);
             
-            // التحقق من عدم تحميله مسبقاً
-            if (this.loadedFontFaces.has(font.id)) {
-                return fontFamilyName;
-            }
+            request.onsuccess = () => {
+                font.id = request.result;
+                this.fonts.push(font);
+                console.log(`✅ Font saved: ${font.name}`);
+                resolve(font);
+            };
             
-            // إنشاء FontFace
-            const fontFace = new FontFace(fontFamilyName, `url(${font.data})`);
-            
-            // تحميل الخط
-            await fontFace.load();
-            
-            // إضافة للمستند
-            document.fonts.add(fontFace);
-            
-            // حفظ المرجع
-            this.loadedFontFaces.set(font.id, fontFamilyName);
-            
-            console.log(`✅ تم تحميل الخط: ${font.name}`);
-            
-            return fontFamilyName;
-        } catch (error) {
-            console.error(`❌ فشل تحميل الخط ${font.name}:`, error);
-            throw error;
-        }
+            request.onerror = () => {
+                console.error('❌ Failed to save font');
+                reject(request.error);
+            };
+        });
     }
-
-    // الحصول على اسم عائلة الخط في CSS
-    getFontFamily(fontId) {
-        return this.loadedFontFaces.get(fontId) || 'Tajawal';
+    
+    /**
+     * تحديث الخط في قاعدة البيانات
+     */
+    updateFont(font) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.put(font);
+            
+            request.onsuccess = () => {
+                const index = this.fonts.findIndex(f => f.id === font.id);
+                if (index !== -1) {
+                    this.fonts[index] = font;
+                }
+                console.log(`✅ Font updated: ${font.name}`);
+                resolve(font);
+            };
+            
+            request.onerror = () => {
+                console.error('❌ Failed to update font');
+                reject(request.error);
+            };
+        });
     }
-
-    // عرض قائمة الخطوط
-    renderFontsList(fonts) {
-        const container = this.elements.fontsList;
-        const emptyState = this.elements.emptyFonts;
+    
+    /**
+     * حذف خط
+     */
+    deleteFont(fontId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.delete(fontId);
+            
+            request.onsuccess = () => {
+                this.fonts = this.fonts.filter(f => f.id !== fontId);
+                console.log(`✅ Font deleted: ${fontId}`);
+                showToast('تم حذف الخط', 'success');
+                this.renderFontsList();
+                this.updateStats();
+                resolve();
+            };
+            
+            request.onerror = () => {
+                console.error('❌ Failed to delete font');
+                reject(request.error);
+            };
+        });
+    }
+    
+    /**
+     * عرض قائمة الخطوط
+     */
+    renderFontsList() {
+        let filteredFonts = this.getFilteredFonts();
         
-        if (!container) return;
-
-        // تحديث العداد
-        this.elements.fontsCount.textContent = `${fonts.length} خط`;
-        
-        // التحقق من وجود خطوط
-        if (fonts.length === 0) {
-            container.innerHTML = '';
-            emptyState?.classList.remove('hidden');
-            emptyState.style.display = 'block';
+        if (filteredFonts.length === 0) {
+            this.elements.fontsList.innerHTML = '';
+            this.elements.noFontsState?.classList.remove('hidden');
             return;
         }
         
-        emptyState?.classList.add('hidden');
-        emptyState.style.display = 'none';
+        this.elements.noFontsState?.classList.add('hidden');
         
-        // إنشاء عناصر الخطوط
-        container.innerHTML = fonts.map(font => this.createFontItem(font)).join('');
+        // الترتيب
+        filteredFonts = this.sortFonts(filteredFonts);
         
-        // إضافة مستمعي الأحداث للعناصر الجديدة
-        this.attachFontItemListeners();
+        const html = filteredFonts.map(font => this.createFontItemHTML(font)).join('');
+        this.elements.fontsList.innerHTML = html;
+        
+        // ربط أحداث العناصر
+        this.bindFontItemEvents();
     }
-
-    // إنشاء عنصر خط
-    createFontItem(font) {
-        const fontFamily = this.getFontFamily(font.id);
-        const firstLetter = font.name.charAt(0).toUpperCase();
-        const fileSize = this.formatFileSize(font.size);
-        const dateAdded = this.formatDate(font.dateAdded);
-        const isSelected = this.selectedFontId === font.id;
+    
+    /**
+     * الحصول على الخطوط المفلترة
+     */
+    getFilteredFonts() {
+        let fonts = [...this.fonts];
+        
+        // تطبيق البحث
+        if (this.searchQuery) {
+            const query = this.searchQuery.toLowerCase();
+            fonts = fonts.filter(font => 
+                font.name.toLowerCase().includes(query) ||
+                font.originalName.toLowerCase().includes(query)
+            );
+        }
+        
+        // تطبيق التصنيف
+        switch (this.currentFilter) {
+            case 'favorites':
+                fonts = fonts.filter(f => f.favorite);
+                break;
+            case 'recent':
+                fonts = fonts.filter(f => f.lastUsed)
+                    .sort((a, b) => b.lastUsed - a.lastUsed)
+                    .slice(0, 10);
+                break;
+            case 'arabic':
+                fonts = fonts.filter(f => f.category === 'arabic');
+                break;
+            case 'english':
+                fonts = fonts.filter(f => f.category === 'english');
+                break;
+        }
+        
+        return fonts;
+    }
+    
+    /**
+     * ترتيب الخطوط
+     */
+    sortFonts(fonts) {
+        switch (this.sortOrder) {
+            case 'name-asc':
+                return fonts.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+            case 'name-desc':
+                return fonts.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
+            case 'date-asc':
+                return fonts.sort((a, b) => a.createdAt - b.createdAt);
+            case 'date-desc':
+                return fonts.sort((a, b) => b.createdAt - a.createdAt);
+            case 'usage':
+                return fonts.sort((a, b) => b.usageCount - a.usageCount);
+            default:
+                return fonts;
+        }
+    }
+    
+    /**
+     * تبديل الترتيب
+     */
+    toggleSort() {
+        const orders = ['name-asc', 'name-desc', 'date-desc', 'date-asc', 'usage'];
+        const currentIndex = orders.indexOf(this.sortOrder);
+        this.sortOrder = orders[(currentIndex + 1) % orders.length];
+        
+        // تحديث الأيقونة
+        const icon = this.elements.sortFontsBtn.querySelector('i');
+        const icons = {
+            'name-asc': 'fa-sort-alpha-down',
+            'name-desc': 'fa-sort-alpha-up',
+            'date-asc': 'fa-sort-numeric-down',
+            'date-desc': 'fa-sort-numeric-up',
+            'usage': 'fa-sort-amount-down'
+        };
+        
+        icon.className = `fas ${icons[this.sortOrder]}`;
+        
+        this.renderFontsList();
+        showToast(this.getSortLabel(), 'info');
+    }
+    
+    /**
+     * الحصول على وصف الترتيب
+     */
+    getSortLabel() {
+        const labels = {
+            'name-asc': 'ترتيب أبجدي (أ-ي)',
+            'name-desc': 'ترتيب أبجدي (ي-أ)',
+            'date-asc': 'الأقدم أولاً',
+            'date-desc': 'الأحدث أولاً',
+            'usage': 'الأكثر استخداماً'
+        };
+        return labels[this.sortOrder];
+    }
+    
+    /**
+     * إنشاء HTML لعنصر الخط
+     */
+    createFontItemHTML(font) {
+        const isSelected = this.selectedFont?.id === font.id;
+        const previewText = this.getPreviewText(font.category);
         
         return `
             <div class="font-item ${isSelected ? 'selected' : ''}" 
-                 data-font-id="${font.id}"
-                 data-font-family="${fontFamily}">
-                <div class="font-icon">${firstLetter}</div>
+                 data-font-id="${font.id}">
+                <div class="font-preview" style="font-family: '${font.fontFamily}'">
+                    ${previewText}
+                </div>
                 <div class="font-info">
                     <div class="font-name">${this.escapeHtml(font.name)}</div>
-                    <div class="font-preview" style="font-family: '${fontFamily}', sans-serif;">
-                        أبجد هوز - The Quick Brown Fox 123
-                    </div>
-                    <div class="font-meta">
-                        <span>${fileSize}</span> • <span>${dateAdded}</span>
-                    </div>
+                    <div class="font-original">${this.escapeHtml(font.originalName)}</div>
                 </div>
                 <div class="font-actions">
-                    <button class="font-action-btn edit tooltip" 
-                            data-tooltip="تعديل الاسم"
-                            data-action="edit" 
-                            data-font-id="${font.id}">
-                        <span class="material-symbols-rounded">edit</span>
+                    <button class="font-action-btn favorite ${font.favorite ? 'active' : ''}" 
+                            data-action="favorite" title="المفضلة">
+                        <i class="fas fa-star"></i>
                     </button>
-                    <button class="font-action-btn favorite tooltip ${font.favorite ? 'active' : ''}" 
-                            data-tooltip="مفضلة"
-                            data-action="favorite" 
-                            data-font-id="${font.id}">
-                        <span class="material-symbols-rounded">${font.favorite ? 'star' : 'star_border'}</span>
+                    <button class="font-action-btn edit" data-action="edit" title="تعديل الاسم">
+                        <i class="fas fa-pen"></i>
                     </button>
-                    <button class="font-action-btn delete tooltip" 
-                            data-tooltip="حذف"
-                            data-action="delete" 
-                            data-font-id="${font.id}">
-                        <span class="material-symbols-rounded">delete</span>
+                    <button class="font-action-btn delete" data-action="delete" title="حذف">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
         `;
     }
-
-    // إرفاق مستمعي أحداث لعناصر الخطوط
-    attachFontItemListeners() {
-        const fontItems = document.querySelectorAll('.font-item');
-        
-        fontItems.forEach(item => {
-            // النقر على العنصر للاختيار
+    
+    /**
+     * الحصول على نص المعاينة
+     */
+    getPreviewText(category) {
+        switch (category) {
+            case 'arabic':
+                return 'أب';
+            case 'english':
+                return 'Aa';
+            default:
+                return 'أA';
+        }
+    }
+    
+    /**
+     * ربط أحداث عناصر الخطوط
+     */
+    bindFontItemEvents() {
+        // النقر على عنصر الخط
+        document.querySelectorAll('.font-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                // تجاهل إذا كان النقر على الأزرار
                 if (e.target.closest('.font-action-btn')) return;
                 
                 const fontId = parseInt(item.dataset.fontId);
                 this.selectFont(fontId);
             });
         });
-
-        // أزرار الإجراءات
-        const actionBtns = document.querySelectorAll('.font-action-btn');
         
-        actionBtns.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        // أزرار الإجراءات
+        document.querySelectorAll('.font-action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
+                const fontId = parseInt(btn.closest('.font-item').dataset.fontId);
                 const action = btn.dataset.action;
-                const fontId = parseInt(btn.dataset.fontId);
                 
                 switch (action) {
+                    case 'favorite':
+                        this.toggleFavorite(fontId);
+                        break;
                     case 'edit':
                         this.openEditModal(fontId);
                         break;
-                    case 'favorite':
-                        await this.toggleFavorite(fontId);
-                        break;
                     case 'delete':
-                        await this.deleteFont(fontId);
+                        this.confirmDelete(fontId);
                         break;
                 }
             });
         });
     }
-
-    // اختيار خط
+    
+    /**
+     * اختيار خط
+     */
     selectFont(fontId) {
-        this.selectedFontId = fontId;
+        const font = this.fonts.find(f => f.id === fontId);
+        if (!font) return;
+        
+        this.selectedFont = font;
+        
+        // تحديث وقت الاستخدام
+        font.lastUsed = Date.now();
+        font.usageCount = (font.usageCount || 0) + 1;
+        this.updateFont(font);
+        
+        // حفظ الخط المحدد
+        localStorage.setItem('selectedFontId', fontId.toString());
         
         // تحديث العرض
         document.querySelectorAll('.font-item').forEach(item => {
             item.classList.toggle('selected', parseInt(item.dataset.fontId) === fontId);
         });
         
-        // تحديث قائمة الخطوط في المحرر
-        if (this.elements.fontSelect) {
-            this.elements.fontSelect.value = fontId;
-        }
-        
         // إرسال حدث للمحرر
         window.dispatchEvent(new CustomEvent('fontSelected', { 
-            detail: { 
-                fontId, 
-                fontFamily: this.getFontFamily(fontId) 
-            } 
+            detail: { font: font } 
         }));
         
-        showToast('تم اختيار الخط', 'success');
+        showToast(`تم اختيار: ${font.name}`, 'success');
     }
-
-    // فتح نافذة تعديل الاسم
+    
+    /**
+     * تحميل الخط المحدد سابقاً
+     */
+    loadSelectedFont() {
+        const savedId = localStorage.getItem('selectedFontId');
+        if (savedId) {
+            const font = this.fonts.find(f => f.id === parseInt(savedId));
+            if (font) {
+                this.selectedFont = font;
+            }
+        }
+    }
+    
+    /**
+     * تبديل المفضلة
+     */
+    async toggleFavorite(fontId) {
+        const font = this.fonts.find(f => f.id === fontId);
+        if (!font) return;
+        
+        font.favorite = !font.favorite;
+        await this.updateFont(font);
+        
+        // تحديث الزر
+        const btn = document.querySelector(`.font-item[data-font-id="${fontId}"] .favorite`);
+        btn?.classList.toggle('active', font.favorite);
+        
+        this.updateStats();
+        
+        showToast(font.favorite ? 'تمت الإضافة للمفضلة' : 'تمت الإزالة من المفضلة', 'success');
+    }
+    
+    /**
+     * فتح مودال التعديل
+     */
     openEditModal(fontId) {
         const font = this.fonts.find(f => f.id === fontId);
         if (!font) return;
         
         this.editingFontId = fontId;
-        
-        // تعبئة البيانات
         this.elements.newFontName.value = font.name;
+        this.elements.fontCategory.value = font.category;
+        this.elements.editFontModal.classList.add('active');
         
-        // تطبيق الخط على المعاينة
-        const fontFamily = this.getFontFamily(fontId);
-        this.elements.fontPreviewText.style.fontFamily = `'${fontFamily}', sans-serif`;
-        this.elements.fontPreviewText.textContent = font.name;
-        
-        // فتح النافذة
-        openModal('edit-font-modal');
-        
-        // التركيز على حقل الاسم
+        // التركيز على حقل الإدخال
         setTimeout(() => {
             this.elements.newFontName.focus();
             this.elements.newFontName.select();
         }, 100);
     }
-
-    // حفظ الاسم الجديد
-    async saveEditedFontName() {
-        const newName = this.elements.newFontName.value.trim();
-        
-        if (!newName) {
-            showToast('يرجى إدخال اسم للخط', 'warning');
-            this.elements.newFontName.classList.add('shake');
-            setTimeout(() => this.elements.newFontName.classList.remove('shake'), 500);
-            return;
-        }
+    
+    /**
+     * إغلاق مودال التعديل
+     */
+    closeEditModal() {
+        this.editingFontId = null;
+        this.elements.editFontModal.classList.remove('active');
+    }
+    
+    /**
+     * حفظ تعديل الخط
+     */
+    async saveEditedFont() {
+        if (!this.editingFontId) return;
         
         const font = this.fonts.find(f => f.id === this.editingFontId);
         if (!font) return;
         
-        try {
-            // تحديث الاسم
-            font.name = newName;
-            
-            // حفظ في قاعدة البيانات
-            await this.db.updateFont(font);
-            
-            // تحديث العرض
-            this.renderFontsList(this.fonts);
-            this.updateFontSelect();
-            
-            // إغلاق النافذة
-            closeModal('edit-font-modal');
-            
-            showToast('تم تحديث اسم الخط بنجاح ✏️', 'success');
-        } catch (error) {
-            console.error('❌ فشل تحديث اسم الخط:', error);
-            showToast('فشل في تحديث اسم الخط', 'error');
-        }
-    }
-
-    // تبديل المفضلة
-    async toggleFavorite(fontId) {
-        const font = this.fonts.find(f => f.id === fontId);
-        if (!font) return;
+        const newName = this.elements.newFontName.value.trim();
+        const newCategory = this.elements.fontCategory.value;
         
-        try {
-            font.favorite = !font.favorite;
-            await this.db.updateFont(font);
-            
-            // تحديث الزر
-            const btn = document.querySelector(`[data-action="favorite"][data-font-id="${fontId}"]`);
-            if (btn) {
-                btn.classList.toggle('active', font.favorite);
-                btn.querySelector('.material-symbols-rounded').textContent = 
-                    font.favorite ? 'star' : 'star_border';
-            }
-            
-            showToast(font.favorite ? 'تمت الإضافة للمفضلة ⭐' : 'تمت الإزالة من المفضلة', 'success');
-        } catch (error) {
-            console.error('❌ فشل تحديث المفضلة:', error);
-        }
-    }
-
-    // حذف خط
-    async deleteFont(fontId) {
-        const font = this.fonts.find(f => f.id === fontId);
-        if (!font) return;
-        
-        const confirmed = await showConfirm(
-            'حذف الخط',
-            `هل أنت متأكد من حذف الخط "${font.name}"؟`
-        );
-        
-        if (!confirmed) return;
-        
-        try {
-            // حذف من قاعدة البيانات
-            await this.db.deleteFont(fontId);
-            
-            // إزالة من القائمة المحلية
-            this.fonts = this.fonts.filter(f => f.id !== fontId);
-            
-            // إزالة FontFace
-            this.loadedFontFaces.delete(fontId);
-            
-            // تحديث العرض
-            this.renderFontsList(this.fonts);
-            this.updateFontSelect();
-            
-            // إعادة تعيين الاختيار إذا كان هو المحذوف
-            if (this.selectedFontId === fontId) {
-                this.selectedFontId = null;
-            }
-            
-            showToast('تم حذف الخط 🗑️', 'success');
-        } catch (error) {
-            console.error('❌ فشل حذف الخط:', error);
-            showToast('فشل في حذف الخط', 'error');
-        }
-    }
-
-    // البحث
-    handleSearch(query) {
-        const trimmedQuery = query.trim();
-        
-        // إظهار/إخفاء زر المسح
-        this.elements.clearSearchBtn?.classList.toggle('hidden', !trimmedQuery);
-        
-        if (!trimmedQuery) {
-            this.renderFontsList(this.fonts);
+        if (!newName) {
+            showToast('يرجى إدخال اسم الخط', 'error');
+            this.elements.newFontName.focus();
             return;
         }
         
-        const filtered = this.fonts.filter(font => 
-            font.name.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-            font.originalName.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
+        font.name = newName;
+        font.category = newCategory;
         
-        this.renderFontsList(filtered);
+        await this.updateFont(font);
+        this.closeEditModal();
+        this.renderFontsList();
+        this.updateStats();
+        
+        showToast('تم تحديث اسم الخط', 'success');
     }
-
-    // تحديث قائمة الخطوط في المحرر
-    updateFontSelect() {
-        const select = this.elements.fontSelect;
-        if (!select) return;
+    
+    /**
+     * تأكيد الحذف
+     */
+    confirmDelete(fontId) {
+        const font = this.fonts.find(f => f.id === fontId);
+        if (!font) return;
         
-        // الاحتفاظ بالخيار الافتراضي
-        const defaultOption = '<option value="default">الخط الافتراضي (Tajawal)</option>';
+        if (confirm(`هل تريد حذف خط "${font.name}"؟`)) {
+            this.deleteFont(fontId);
+        }
+    }
+    
+    /**
+     * تحديث الإحصائيات
+     */
+    updateStats() {
+        const total = this.fonts.length;
+        const favorites = this.fonts.filter(f => f.favorite).length;
+        const recent = this.fonts.filter(f => f.lastUsed).length;
         
-        // إضافة الخطوط المرفوعة
-        const fontOptions = this.fonts.map(font => {
-            const fontFamily = this.getFontFamily(font.id);
-            return `<option value="${font.id}" style="font-family: '${fontFamily}'">${this.escapeHtml(font.name)}</option>`;
+        if (this.elements.totalFonts) {
+            this.elements.totalFonts.textContent = total;
+        }
+        if (this.elements.favoriteFonts) {
+            this.elements.favoriteFonts.textContent = favorites;
+        }
+        if (this.elements.recentFonts) {
+            this.elements.recentFonts.textContent = recent;
+        }
+    }
+    
+    /**
+     * إظهار/إخفاء زر مسح البحث
+     */
+    toggleClearSearch() {
+        const hasQuery = this.searchQuery.length > 0;
+        this.elements.clearSearchBtn?.classList.toggle('hidden', !hasQuery);
+    }
+    
+    /**
+     * عرض قائمة الخطوط في اللوحة
+     */
+    renderFontPanelList(searchQuery = '') {
+        let fonts = [...this.fonts];
+        
+        // البحث
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            fonts = fonts.filter(font => 
+                font.name.toLowerCase().includes(query) ||
+                font.originalName.toLowerCase().includes(query)
+            );
+        }
+        
+        // ترتيب حسب المفضلة ثم الأحدث استخداماً
+        fonts.sort((a, b) => {
+            if (a.favorite !== b.favorite) return b.favorite - a.favorite;
+            if (a.lastUsed && b.lastUsed) return b.lastUsed - a.lastUsed;
+            return a.name.localeCompare(b.name, 'ar');
+        });
+        
+        if (fonts.length === 0) {
+            this.elements.fontPanelList.innerHTML = `
+                <div class="no-fonts-state">
+                    <i class="fas fa-search"></i>
+                    <p>لا توجد نتائج</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const html = fonts.map(font => {
+            const isSelected = this.selectedFont?.id === font.id;
+            const previewText = this.getPreviewText(font.category);
+            
+            return `
+                <div class="font-panel-item ${isSelected ? 'selected' : ''}" 
+                     data-font-id="${font.id}">
+                    <span class="font-panel-preview" style="font-family: '${font.fontFamily}'">
+                        ${previewText}
+                    </span>
+                    <span class="font-panel-name">${this.escapeHtml(font.name)}</span>
+                    ${font.favorite ? '<i class="fas fa-star" style="color: var(--warning-color)"></i>' : ''}
+                </div>
+            `;
         }).join('');
         
-        select.innerHTML = defaultOption + fontOptions;
+        this.elements.fontPanelList.innerHTML = html;
+        
+        // ربط الأحداث
+        document.querySelectorAll('.font-panel-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const fontId = parseInt(item.dataset.fontId);
+                this.selectFont(fontId);
+                this.elements.fontsPanel.classList.remove('active');
+            });
+        });
     }
-
-    // تصدير الخطوط
+    
+    /**
+     * فتح لوحة اختيار الخطوط
+     */
+    openFontsPanel() {
+        this.elements.fontsPanel.classList.add('active');
+        this.elements.fontPanelSearch.value = '';
+        this.renderFontPanelList();
+        
+        setTimeout(() => {
+            this.elements.fontPanelSearch.focus();
+        }, 300);
+    }
+    
+    /**
+     * تصدير الخطوط
+     */
     async exportFonts() {
+        if (this.fonts.length === 0) {
+            showToast('لا توجد خطوط للتصدير', 'warning');
+            return;
+        }
+        
         try {
-            const fonts = await this.db.getAllFonts();
-            
             const exportData = {
-                version: '1.0',
+                version: '2.0',
                 exportDate: new Date().toISOString(),
-                fonts: fonts
+                fonts: this.fonts
             };
             
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-                type: 'application/json'
+            const blob = new Blob([JSON.stringify(exportData)], { 
+                type: 'application/json' 
             });
             
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `font-studio-fonts-${Date.now()}.json`;
-            document.body.appendChild(a);
+            a.download = `font-studio-backup-${Date.now()}.json`;
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            showToast('تم تصدير الخطوط بنجاح 📤', 'success');
+            showToast('تم تصدير الخطوط بنجاح', 'success');
         } catch (error) {
-            console.error('❌ فشل تصدير الخطوط:', error);
-            showToast('فشل في تصدير الخطوط', 'error');
+            console.error('❌ Export failed:', error);
+            showToast('فشل تصدير الخطوط', 'error');
         }
     }
-
-    // استيراد الخطوط
+    
+    /**
+     * استيراد الخطوط
+     */
     async importFonts(file) {
+        if (!file) return;
+        
         try {
             const text = await file.text();
-            const importData = JSON.parse(text);
+            const data = JSON.parse(text);
             
-            if (!importData.fonts || !Array.isArray(importData.fonts)) {
-                throw new Error('ملف غير صالح');
+            if (!data.fonts || !Array.isArray(data.fonts)) {
+                throw new Error('Invalid backup format');
             }
             
             let importedCount = 0;
             
-            for (const font of importData.fonts) {
-                // إزالة الـ ID القديم
-                delete font.id;
-                font.dateAdded = new Date().toISOString();
+            for (const font of data.fonts) {
+                // التحقق من عدم وجود تكرار
+                const exists = this.fonts.some(f => 
+                    f.originalName === font.originalName
+                );
                 
-                // إضافة الخط
-                const id = await this.db.addFont(font);
-                font.id = id;
-                this.fonts.push(font);
-                await this.loadFontFace(font);
+                if (exists) continue;
+                
+                // إنشاء معرف فريد جديد
+                delete font.id;
+                font.fontFamily = `font_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                font.createdAt = Date.now();
+                
+                // تسجيل وحفظ الخط
+                this.registerFont(font);
+                await this.saveFont(font);
                 importedCount++;
             }
             
-            this.renderFontsList(this.fonts);
-            this.updateFontSelect();
-            
-            showToast(`تم استيراد ${importedCount} خط بنجاح 📥`, 'success');
+            if (importedCount > 0) {
+                this.renderFontsList();
+                this.updateStats();
+                showToast(`تم استيراد ${importedCount} خط`, 'success');
+            } else {
+                showToast('جميع الخطوط موجودة مسبقاً', 'info');
+            }
         } catch (error) {
-            console.error('❌ فشل استيراد الخطوط:', error);
-            showToast('فشل في استيراد الخطوط - تأكد من صحة الملف', 'error');
+            console.error('❌ Import failed:', error);
+            showToast('فشل استيراد الخطوط', 'error');
         }
+        
+        // إعادة تعيين
+        this.elements.backupInput.value = '';
     }
-
-    // حذف جميع الخطوط
-    async clearAllFonts() {
-        const confirmed = await showConfirm(
-            'حذف جميع الخطوط',
-            'هل أنت متأكد من حذف جميع الخطوط؟ هذا الإجراء لا يمكن التراجع عنه!'
-        );
-        
-        if (!confirmed) return;
-        
-        try {
-            await this.db.clearAllFonts();
-            this.fonts = [];
-            this.loadedFontFaces.clear();
-            this.selectedFontId = null;
-            
-            this.renderFontsList(this.fonts);
-            this.updateFontSelect();
-            
-            showToast('تم حذف جميع الخطوط', 'success');
-        } catch (error) {
-            console.error('❌ فشل حذف الخطوط:', error);
-            showToast('فشل في حذف الخطوط', 'error');
-        }
+    
+    /**
+     * الحصول على خط بواسطة المعرف
+     */
+    getFontById(fontId) {
+        return this.fonts.find(f => f.id === fontId);
     }
-
-    // ============================================
-    // 🛠️ دوال مساعدة
-    // ============================================
-
-    // تنسيق حجم الملف
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    
+    /**
+     * الحصول على الخط المحدد
+     */
+    getSelectedFont() {
+        return this.selectedFont;
     }
-
-    // تنسيق التاريخ
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        
-        // أقل من دقيقة
-        if (diff < 60000) {
-            return 'الآن';
-        }
-        
-        // أقل من ساعة
-        if (diff < 3600000) {
-            const minutes = Math.floor(diff / 60000);
-            return `منذ ${minutes} دقيقة`;
-        }
-        
-        // أقل من يوم
-        if (diff < 86400000) {
-            const hours = Math.floor(diff / 3600000);
-            return `منذ ${hours} ساعة`;
-        }
-        
-        // أقل من أسبوع
-        if (diff < 604800000) {
-            const days = Math.floor(diff / 86400000);
-            return `منذ ${days} يوم`;
-        }
-        
-        // تاريخ كامل
-        return date.toLocaleDateString('ar-SA', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+    
+    /**
+     * الحصول على جميع الخطوط
+     */
+    getAllFonts() {
+        return [...this.fonts];
     }
-
-    // تهريب HTML لمنع XSS
+    
+    /**
+     * تنظيف النص (منع XSS)
+     */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-
-    // الحصول على جميع الخطوط
-    getAllFonts() {
-        return this.fonts;
-    }
-
-    // الحصول على خط بالـ ID
-    getFontById(id) {
-        return this.fonts.find(f => f.id === id);
+    
+    /**
+     * مسح جميع الخطوط
+     */
+    async clearAllFonts() {
+        if (!confirm('هل تريد حذف جميع الخطوط؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+            return;
+        }
+        
+        try {
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            await store.clear();
+            
+            this.fonts = [];
+            this.selectedFont = null;
+            localStorage.removeItem('selectedFontId');
+            
+            this.renderFontsList();
+            this.updateStats();
+            
+            showToast('تم حذف جميع الخطوط', 'success');
+        } catch (error) {
+            console.error('❌ Clear failed:', error);
+            showToast('فشل حذف الخطوط', 'error');
+        }
     }
 }
 
-// ============================================
-// 🚀 تهيئة مدير الخطوط
-// ============================================
+/**
+ * ============================================
+ * دالة عرض التنبيهات Toast
+ * ============================================
+ */
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}"></i>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    // إزالة التنبيه بعد 3 ثواني
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 
+/**
+ * ============================================
+ * تهيئة مدير الخطوط عند تحميل الصفحة
+ * ============================================
+ */
 let fontsManager;
 
 document.addEventListener('DOMContentLoaded', () => {
-    fontsManager = new FontsManager();
-    
-    // جعله متاحاً عالمياً
-    window.fontsManager = fontsManager;
+    // انتظار تحميل قاعدة البيانات
+    setTimeout(() => {
+        fontsManager = new FontsManager();
+        
+        // جعله متاحاً عالمياً
+        window.fontsManager = fontsManager;
+    }, 100);
 });
 
-// ============================================
-// 📤 تصدير/استيراد من الإعدادات
-// ============================================
+/**
+ * ============================================
+ * دوال مساعدة عامة
+ * ============================================
+ */
 
-document.getElementById('export-data-btn')?.addEventListener('click', () => {
-    fontsManager?.exportFonts();
-});
-
-document.getElementById('import-data-btn')?.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fontsManager?.importFonts(file);
-        }
-    };
-    
-    input.click();
-});
-
-document.getElementById('clear-data-btn')?.addEventListener('click', () => {
-    fontsManager?.clearAllFonts();
-});
-
-// ============================================
-// 🎨 CSS إضافي للخطوط المفضلة
-// ============================================
-
-const additionalStyles = document.createElement('style');
-additionalStyles.textContent = `
-    .font-action-btn.favorite.active {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
-        color: white !important;
-    }
-    
-    .font-action-btn.favorite.active:hover {
-        background: linear-gradient(135deg, #d97706, #f59e0b) !important;
-    }
-    
-    .font-item.selected .font-icon {
-        background: linear-gradient(135deg, #10b981, #34d399);
-    }
-    
-    .font-item:hover .font-preview {
-        color: var(--primary);
-    }
-    
-    /* أنيميشن عند إضافة خط جديد */
-    .font-item {
-        animation: slideIn 0.3s ease;
-    }
-    
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateX(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    /* تحسين عرض المعاينة */
-    .font-preview {
-        font-size: 1.1rem;
-        letter-spacing: 0.5px;
-        transition: color 0.2s ease;
-    }
-    
-    /* Drag over effect */
-    .drop-zone.drag-over .drop-icon {
-        animation: bounce 0.5s ease infinite;
-    }
-    
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-`;
-
-document.head.appendChild(additionalStyles);
-
-// ============================================
-// 🔧 دوال مساعدة إضافية
-// ============================================
-
-// التحقق من دعم المتصفح
-function checkBrowserSupport() {
-    const features = {
-        indexedDB: 'indexedDB' in window,
-        fontFace: 'FontFace' in window,
-        fileReader: 'FileReader' in window
-    };
-    
-    const unsupported = Object.entries(features)
-        .filter(([, supported]) => !supported)
-        .map(([feature]) => feature);
-    
-    if (unsupported.length > 0) {
-        console.warn('⚠️ ميزات غير مدعومة:', unsupported);
-        showToast('متصفحك لا يدعم بعض الميزات. يرجى استخدام متصفح حديث.', 'warning', 5000);
-    }
-    
-    return unsupported.length === 0;
+// تنسيق حجم الملف
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// فحص الدعم عند التحميل
-document.addEventListener('DOMContentLoaded', checkBrowserSupport);
-
-// ============================================
-// 📱 دعم PWA - تثبيت التطبيق
-// ============================================
-
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    
-    // يمكنك إظهار زر التثبيت هنا
-    console.log('📱 التطبيق جاهز للتثبيت');
-});
-
-// تثبيت التطبيق
-async function installApp() {
-    if (!deferredPrompt) {
-        showToast('التطبيق مثبت بالفعل أو غير متاح للتثبيت', 'info');
-        return;
-    }
-    
-    deferredPrompt.prompt();
-    
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-        showToast('تم تثبيت التطبيق بنجاح! 🎉', 'success');
-    }
-    
-    deferredPrompt = null;
+// تنسيق التاريخ
+function formatDate(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('ar-SA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
 }
 
-// جعل دالة التثبيت متاحة عالمياً
-window.installApp = installApp;
-
-console.log('✅ تم تحميل fonts-manager.js');
+// توليد معرف فريد
+function generateUniqueId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
