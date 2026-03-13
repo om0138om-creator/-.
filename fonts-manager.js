@@ -880,6 +880,9 @@ class FontsManager {
     /**
      * تصدير الخطوط (معدل ليعمل بقوة على أندرويد مع Capacitor)
      */
+    /**
+     * 🚀 تصدير الخطوط (معدل ليعمل بقوة على أندرويد)
+     */
     async exportFonts() {
         if (this.fonts.length === 0) {
             showToast('لا توجد خطوط للتصدير', 'warning');
@@ -896,11 +899,11 @@ class FontsManager {
             const jsonStr = JSON.stringify(exportData);
             const fileName = `font-studio-backup-${Date.now()}.json`;
 
-            // 🚀 التحقق إذا كان التطبيق يعمل داخل أندرويد (Capacitor)
+            // التحقق إذا كان التطبيق يعمل داخل أندرويد وتم تسطيب الإضافات
             if (window.Capacitor && window.Capacitor.Plugins.Filesystem && window.Capacitor.Plugins.Share) {
                 const { Filesystem, Share } = window.Capacitor.Plugins;
                 
-                // حفظ الملف في الذاكرة المؤقتة للتطبيق
+                // حفظ الملف مؤقتاً داخل التطبيق
                 const savedFile = await Filesystem.writeFile({
                     path: fileName,
                     data: jsonStr,
@@ -915,13 +918,13 @@ class FontsManager {
                     url: savedFile.uri,
                     dialogTitle: 'احفظ ملف الخطوط أينما تريد'
                 });
-                showToast('تم تصدير الخطوط بنجاح', 'success');
+                showToast('تم تجهيز الملف للمشاركة', 'success');
             } else {
-                // الكود البديل لو شغال على متصفح كمبيوتر
+                // الكود البديل للكمبيوتر
                 const file = new File([jsonStr], fileName, { type: 'application/json' });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
-                        title: 'نسخة احتياطية',
+                        title: 'نسخة احتياطية للخطوط',
                         files: [file]
                     });
                 } else {
@@ -933,7 +936,7 @@ class FontsManager {
                     a.click();
                     URL.revokeObjectURL(url);
                 }
-                showToast('تم تصدير الخطوط بنجاح', 'success');
+                showToast('تم التصدير بنجاح', 'success');
             }
         } catch (error) {
             console.error('❌ Export failed:', error);
