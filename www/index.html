@@ -419,30 +419,16 @@
         <!-- لوحة إضافة نص -->
         <div id="textPanel" class="bottom-sheet">
             <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <h3>إضافة نص</h3>
+            <div class="sheet-header" style="padding-bottom: 10px; border-bottom: none;">
+                <h3 style="font-size: 16px;">إضافة نص</h3>
                 <button class="sheet-close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="sheet-content">
-                <div class="text-input-container">
-                    <textarea id="textInput" placeholder="اكتب النص هنا..." rows="3"></textarea>
-                    <div class="text-input-actions">
-                        <button id="addTextBtn" class="action-btn primary">
-                            <i class="fas fa-plus"></i>
-                            إضافة
-                        </button>
-                    </div>
-                </div>
-                <div class="text-presets">
-                    <h4>نصوص سريعة</h4>
-                    <div class="presets-list">
-                        <button class="preset-btn" data-text="بسم الله الرحمن الرحيم">بسم الله</button>
-                        <button class="preset-btn" data-text="الحمد لله">الحمد لله</button>
-                        <button class="preset-btn" data-text="ما شاء الله">ما شاء الله</button>
-                        <button class="preset-btn" data-text="جمعة مباركة">جمعة مباركة</button>
-                        <button class="preset-btn" data-text="صباح الخير">صباح الخير</button>
-                        <button class="preset-btn" data-text="مساء الخير">مساء الخير</button>
-                    </div>
+            <div class="sheet-content" style="padding-top: 0; padding-bottom: 16px;">
+                <div class="text-input-container" style="display: flex; gap: 10px; margin-bottom: 0;">
+                    <textarea id="textInput" placeholder="اكتب النص هنا..." rows="1" style="flex: 1; min-height: 48px; padding: 12px;"></textarea>
+                    <button id="addTextBtn" class="action-btn primary" style="width: 50px; height: 48px; padding: 0; justify-content: center; flex-shrink: 0; margin-top: 0;">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
             </div>
         </div>
