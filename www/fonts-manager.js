@@ -875,7 +875,7 @@ class FontsManager {
     }
     
     /**
-     * تصدير الخطوط
+     * تصدير الخطوط (محدث ليدعم تطبيقات الأندرويد)
      */
     async exportFonts() {
         if (this.fonts.length === 0) {
@@ -890,21 +890,31 @@ class FontsManager {
                 fonts: this.fonts
             };
             
-            const blob = new Blob([JSON.stringify(exportData)], { 
-                type: 'application/json' 
-            });
+            const jsonStr = JSON.stringify(exportData);
+            const fileName = `font-studio-backup-${Date.now()}.json`;
+            const file = new File([jsonStr], fileName, { type: 'application/json' });
             
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `font-studio-backup-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showToast('تم تصدير الخطوط بنجاح', 'success');
+            // 🚀 استخدام نافذة المشاركة الأصلية للموبايل
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'نسخة احتياطية للخطوط',
+                    text: 'إليك ملف النسخة الاحتياطية لخطوط تطبيق فونت ستوديو',
+                    files: [file]
+                });
+                showToast('تم تصدير الخطوط بنجاح', 'success');
+            } else {
+                // البديل في حالة تشغيل التطبيق على متصفح الكمبيوتر
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('تم تصدير الخطوط بنجاح', 'success');
+            }
         } catch (error) {
             console.error('❌ Export failed:', error);
-            showToast('فشل تصدير الخطوط', 'error');
+            showToast('تم إلغاء التصدير', 'info');
         }
     }
     
