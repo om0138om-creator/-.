@@ -875,7 +875,7 @@ class FontsManager {
     }
     
     /**
-     * تصدير الخطوط (محدث ليدعم تطبيقات الأندرويد)
+     * 🚀 تصدير الخطوط (معدل ليعمل بقوة على أندرويد عبر المكتبات المباشرة)
      */
     async exportFonts() {
         if (this.fonts.length === 0) {
@@ -884,6 +884,8 @@ class FontsManager {
         }
         
         try {
+            showToast('جاري التجهيز... يرجى الانتظار', 'info');
+            
             const exportData = {
                 version: '2.0',
                 exportDate: new Date().toISOString(),
@@ -892,29 +894,49 @@ class FontsManager {
             
             const jsonStr = JSON.stringify(exportData);
             const fileName = `font-studio-backup-${Date.now()}.json`;
-            const file = new File([jsonStr], fileName, { type: 'application/json' });
-            
-            // 🚀 استخدام نافذة المشاركة الأصلية للموبايل
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    title: 'نسخة احتياطية للخطوط',
-                    text: 'إليك ملف النسخة الاحتياطية لخطوط تطبيق فونت ستوديو',
-                    files: [file]
+
+            // 🚀 السر هنا: استخدام المكتبات اللي ضفناها في HTML
+            if (window.capacitorFilesystem && window.capacitorShare) {
+                const Filesystem = window.capacitorFilesystem.Filesystem;
+                const Share = window.capacitorShare.Share;
+                
+                // حفظ الملف مؤقتاً داخل ذاكرة التطبيق
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: jsonStr,
+                    directory: 'CACHE',
+                    encoding: 'utf8'
                 });
-                showToast('تم تصدير الخطوط بنجاح', 'success');
+                
+                // فتح شاشة المشاركة الخاصة بالموبايل
+                await Share.share({
+                    title: 'نسخة احتياطية للخطوط',
+                    text: 'ملف خطوط تطبيق فونت ستوديو',
+                    url: savedFile.uri,
+                    dialogTitle: 'احفظ ملف الخطوط أينما تريد'
+                });
             } else {
-                // البديل في حالة تشغيل التطبيق على متصفح الكمبيوتر
-                const url = URL.createObjectURL(file);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('تم تصدير الخطوط بنجاح', 'success');
+                // الكود البديل لو شغال من الكمبيوتر
+                const file = new File([jsonStr], fileName, { type: 'application/json' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'نسخة احتياطية للخطوط',
+                        files: [file]
+                    });
+                } else {
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+                showToast('تم التصدير بنجاح', 'success');
             }
         } catch (error) {
             console.error('❌ Export failed:', error);
-            showToast('تم إلغاء التصدير', 'info');
+            showToast('فشل التصدير، تأكد من اتصالك بالإنترنت', 'error');
         }
     }
     
