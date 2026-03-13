@@ -347,7 +347,7 @@ class ImageEditor {
     }
 
     /**
-     * 🚀 ربط أحداث اللمس (تم تعديلها لالتقاط لمس الخلفية والصورة)
+     * 🚀 ربط أحداث اللمس (محدثة لعدم تجميد التطبيق)
      */
     bindTouchEvents() {
         const wrapper = this.elements.canvasWrapper;
@@ -360,8 +360,11 @@ class ImageEditor {
         
         // اللمس
         wrapper.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        document.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        
+        // 🚀 السر هنا: نقلنا أحداث اللمس لداخل مساحة العمل فقط بدل الشاشة كلها
+        wrapper.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        wrapper.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        wrapper.addEventListener('touchcancel', (e) => this.handleTouchEnd(e)); // للتعامل مع أي خروج مفاجئ
         
         wrapper.addEventListener('contextmenu', (e) => e.preventDefault());
     }
@@ -1001,17 +1004,20 @@ class ImageEditor {
      * 🚀 معالجة حركة اللمس (السحب أو التكبير) بسرعة البرق
      */
     handleTouchMove(e) {
+        // 🚀 الحل السحري: لو مش بنسحب كلمة ومش بنعمل زووم، سيب اللمس يشتغل في باقي التطبيق!
+        if (!this.isPinching && !this.isDragging) return; 
+
         if (this.isPinching && e.touches.length === 2) {
             if (e.cancelable) e.preventDefault();
             const distance = this.getTouchDistance(e.touches);
             const scale = distance / this.lastTouchDistance;
             
             if (this.isPinchingText && this.selectedLayer) {
-                // تكبير/تصغير النص المحدد بصباعين (سلاسة تامة)
+                // تكبير/تصغير النص المحدد بصباعين
                 this.selectedLayer.fontSize *= scale;
                 this.selectedLayer.fontSize = Math.max(8, Math.min(500, this.selectedLayer.fontSize));
                 
-                // تحديث مباشر للـ DOM بدون إعادة رسم
+                // تحديث مباشر للـ DOM
                 const el = document.querySelector(`.text-layer[data-layer-id="${this.selectedLayer.id}"]`);
                 if (el) {
                     el.style.fontSize = `${this.selectedLayer.fontSize * this.scale}px`;
@@ -1022,12 +1028,13 @@ class ImageEditor {
             }
             
             this.lastTouchDistance = distance;
-        } else if (e.touches.length === 1) {
-            // منع التمرير الافتراضي للشاشة أثناء السحب
+        } else if (this.isDragging && e.touches.length === 1) {
+            // منع تقطيع الشاشة أثناء سحب الكلمات فقط
             if (e.cancelable) e.preventDefault(); 
             this.handlePointerMove(e.touches[0]);
         }
     }
+
     
     /**
      * معالجة انتهاء اللمس
