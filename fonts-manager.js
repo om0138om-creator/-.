@@ -875,7 +875,10 @@ class FontsManager {
     }
     
     /**
-     * تصدير الخطوط
+     * تصدير الخطوط (محدث ليدعم تطبيقات الأندرويد)
+     */
+    /**
+     * تصدير الخطوط (معدل ليعمل بقوة على أندرويد مع Capacitor)
      */
     async exportFonts() {
         if (this.fonts.length === 0) {
@@ -890,23 +893,54 @@ class FontsManager {
                 fonts: this.fonts
             };
             
-            const blob = new Blob([JSON.stringify(exportData)], { 
-                type: 'application/json' 
-            });
-            
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `font-studio-backup-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showToast('تم تصدير الخطوط بنجاح', 'success');
+            const jsonStr = JSON.stringify(exportData);
+            const fileName = `font-studio-backup-${Date.now()}.json`;
+
+            // 🚀 التحقق إذا كان التطبيق يعمل داخل أندرويد (Capacitor)
+            if (window.Capacitor && window.Capacitor.Plugins.Filesystem && window.Capacitor.Plugins.Share) {
+                const { Filesystem, Share } = window.Capacitor.Plugins;
+                
+                // حفظ الملف في الذاكرة المؤقتة للتطبيق
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: jsonStr,
+                    directory: 'CACHE',
+                    encoding: 'utf8'
+                });
+                
+                // إظهار قائمة المشاركة الأصلية للأندرويد
+                await Share.share({
+                    title: 'نسخة احتياطية للخطوط',
+                    text: 'ملف خطوط تطبيق فونت ستوديو',
+                    url: savedFile.uri,
+                    dialogTitle: 'احفظ ملف الخطوط أينما تريد'
+                });
+                showToast('تم تصدير الخطوط بنجاح', 'success');
+            } else {
+                // الكود البديل لو شغال على متصفح كمبيوتر
+                const file = new File([jsonStr], fileName, { type: 'application/json' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'نسخة احتياطية',
+                        files: [file]
+                    });
+                } else {
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+                showToast('تم تصدير الخطوط بنجاح', 'success');
+            }
         } catch (error) {
             console.error('❌ Export failed:', error);
-            showToast('فشل تصدير الخطوط', 'error');
+            showToast('تم إلغاء التصدير', 'info');
         }
     }
+
     
     /**
      * استيراد الخطوط
