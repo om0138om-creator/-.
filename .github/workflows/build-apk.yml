@@ -23,7 +23,9 @@ jobs:
           java-version: '17'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install @capacitor/filesystem @capacitor/share
 
       - name: Build with Capacitor
         run: |
@@ -34,11 +36,3 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Font-Studio-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
