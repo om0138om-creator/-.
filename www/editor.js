@@ -202,22 +202,15 @@ class ImageEditor {
     }
     
     /**
-     * ربط الأحداث
+     * ربط جميع الأحداث
      */
     bindEvents() {
         // رفع الصور
-        this.elements.uploadImageBtn?.addEventListener('click', () => {
-            this.elements.imageInput.click();
-        });
-        
-        this.elements.imageInput?.addEventListener('change', (e) => {
-            this.handleImageUpload(e.target.files[0]);
-        });
+        this.elements.uploadImageBtn?.addEventListener('click', () => this.elements.imageInput.click());
+        this.elements.imageInput?.addEventListener('change', (e) => this.handleImageUpload(e.target.files[0]));
         
         // تصميم فارغ
-        this.elements.createBlankBtn?.addEventListener('click', () => {
-            this.openBlankSizeModal();
-        });
+        this.elements.createBlankBtn?.addEventListener('click', () => this.openBlankSizeModal());
         
         // أزرار التحكم في Canvas
         this.elements.zoomInBtn?.addEventListener('click', () => this.zoom(1.2));
@@ -231,11 +224,147 @@ class ImageEditor {
         
         // شريط الأدوات
         this.elements.toolBtns?.forEach(btn => {
+            btn.addEventListener('click', () => this.handleToolClick(btn.dataset.tool));
+        });
+
+        // ==========================================
+        // 🚀 إضافة نص والكتابة الحية
+        // ==========================================
+        this.elements.addTextBtn?.addEventListener('click', () => {
+            if (!this.selectedLayer) this.addText();
+            this.elements.textPanel.classList.remove('active');
+        });
+        
+        this.elements.textInput?.addEventListener('input', (e) => {
+            const text = e.target.value;
+            if (this.selectedLayer) {
+                this.selectedLayer.text = text || ' ';
+                this.renderTextOverlay();
+            } else if (text.trim().length > 0) {
+                this.addText();
+            }
+        });
+
+        this.elements.textInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.elements.textPanel.classList.remove('active');
+            }
+        });
+        
+        // نصوص سريعة
+        this.elements.presetBtns?.forEach(btn => {
             btn.addEventListener('click', () => {
-                const tool = btn.dataset.tool;
-                this.handleToolClick(tool);
+                this.elements.textInput.value = btn.dataset.text;
+                if (this.selectedLayer) {
+                    this.selectedLayer.text = btn.dataset.text;
+                    this.renderTextOverlay();
+                } else {
+                    this.addText();
+                }
             });
         });
+        
+        // الألوان والتأثيرات
+        this.elements.colorPicker?.addEventListener('input', (e) => this.updateTextColor(e.target.value));
+        this.elements.colorPresets?.forEach(preset => {
+            preset.addEventListener('click', () => {
+                this.updateTextColor(preset.dataset.color);
+                this.elements.colorPicker.value = preset.dataset.color;
+            });
+        });
+        
+        this.elements.shadowX?.addEventListener('input', (e) => this.updateShadow('x', e.target.value));
+        this.elements.shadowY?.addEventListener('input', (e) => this.updateShadow('y', e.target.value));
+        this.elements.shadowBlur?.addEventListener('input', (e) => this.updateShadow('blur', e.target.value));
+        this.elements.shadowColor?.addEventListener('input', (e) => this.updateShadow('color', e.target.value));
+        this.elements.strokeWidth?.addEventListener('input', (e) => this.updateStroke('width', e.target.value));
+        this.elements.strokeColor?.addEventListener('input', (e) => this.updateStroke('color', e.target.value));
+        this.elements.opacitySlider?.addEventListener('input', (e) => this.updateOpacity(e.target.value));
+        this.elements.effectBtns?.forEach(btn => btn.addEventListener('click', () => this.applyEffect(btn.dataset.effect)));
+        
+        // الحفظ والتصدير
+        this.elements.saveExportBtn?.addEventListener('click', () => this.openExportModal());
+        this.elements.qualityBtns?.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.elements.qualityBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        this.elements.downloadImage?.addEventListener('click', () => this.downloadImage());
+        this.elements.shareImage?.addEventListener('click', () => this.shareImage());
+        
+        this.elements.sizePresets?.forEach(preset => {
+            preset.addEventListener('click', () => {
+                this.createBlankCanvas(parseInt(preset.dataset.width), parseInt(preset.dataset.height));
+                this.closeModal(this.elements.blankSizeModal);
+            });
+        });
+        this.elements.applyCustomSize?.addEventListener('click', () => {
+            this.createBlankCanvas(parseInt(this.elements.customWidth.value) || 1080, parseInt(this.elements.customHeight.value) || 1080);
+            this.closeModal(this.elements.blankSizeModal);
+        });
+        
+        // ==========================================
+        // 🚀 القائمة الجانبية والتنقل (تم استرجاعها)
+        // ==========================================
+        this.elements.menuBtn?.addEventListener('click', () => {
+            this.elements.sideMenu.classList.add('active');
+        });
+        this.elements.sideMenu?.querySelector('.menu-overlay')?.addEventListener('click', () => {
+            this.elements.sideMenu.classList.remove('active');
+        });
+        
+        this.elements.menuItems?.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.dataset.page;
+                this.navigateToPage(page);
+            });
+        });
+        
+        this.elements.themeToggle?.addEventListener('click', () => this.toggleTheme());
+        this.elements.darkModeToggle?.addEventListener('change', (e) => this.setTheme(e.target.checked ? 'dark' : 'light'));
+        
+        // إغلاق المودالات
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', () => this.closeModal(btn.closest('.modal')));
+        });
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.closeModal(modal);
+            });
+        });
+        document.querySelectorAll('.sheet-close').forEach(btn => {
+            btn.addEventListener('click', () => btn.closest('.bottom-sheet').classList.remove('active'));
+        });
+        
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+        
+        // تفعيل اللمس على الشاشة بالكامل
+        this.bindTouchEvents();
+        window.addEventListener('fontSelected', (e) => this.handleFontSelected(e.detail.font));
+    }
+
+    /**
+     * 🚀 ربط أحداث اللمس (تم تعديلها لالتقاط لمس الخلفية والصورة)
+     */
+    bindTouchEvents() {
+        const wrapper = this.elements.canvasWrapper;
+        if (!wrapper) return;
+        
+        // الماوس
+        wrapper.addEventListener('mousedown', (e) => this.handlePointerDown(e));
+        document.addEventListener('mousemove', (e) => this.handlePointerMove(e));
+        document.addEventListener('mouseup', (e) => this.handlePointerUp(e));
+        
+        // اللمس
+        wrapper.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        document.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        
+        wrapper.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
         
         // إضافة نص
         this.elements.addTextBtn?.addEventListener('click', () => {
@@ -1051,7 +1180,7 @@ class ImageEditor {
     }
     
     /**
-     * 🚀 معالجة بدء اللمس (بصباع أو صباعين) - كود جبار وسلس
+     * 🚀 معالجة بدء اللمس (بصباع أو صباعين)
      */
     handleTouchStart(e) {
         if (e.touches.length === 2) {
@@ -1059,17 +1188,18 @@ class ImageEditor {
             this.isPinching = true;
             this.lastTouchDistance = this.getTouchDistance(e.touches);
             
-            // تحديد هل اللمس بصباعين كان على النص ولا على الخلفية
-            const target = e.target.closest('.text-layer');
+            // تحديد هل اللمس على النص ولا الخلفية بذكاء
+            const target = (e.target && typeof e.target.closest === 'function') ? e.target.closest('.text-layer') : null;
             if (target && this.selectedLayer && parseInt(target.dataset.layerId) === this.selectedLayer.id) {
-                this.isPinchingText = true; // بيكبر النص
+                this.isPinchingText = true; // تكبير النص
             } else {
-                this.isPinchingText = false; // بيكبر الصورة
+                this.isPinchingText = false; // تكبير الصورة
             }
         } else if (e.touches.length === 1) {
             this.handlePointerDown(e.touches[0]);
         }
     }
+
     
     /**
      * 🚀 معالجة حركة اللمس (السحب أو التكبير) بسرعة البرق
